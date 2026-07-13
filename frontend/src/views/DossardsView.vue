@@ -1,11 +1,47 @@
 <script setup>
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useRaceStore } from "../stores/raceStore"
 import DossardCard from "../components/DossardCard.vue"
+import DossardFilters from "../components/DossardFilters.vue"
 
 const raceStore = useRaceStore()
+const classe = ref("")
+const categorie = ref("")
+const recherche = ref("")
 
 const participants = computed(() => raceStore.participants)
+const classes = computed(() =>
+  [...new Set(raceStore.participants.map(p => p.classe))].sort()
+)
+
+const categories = computed(() =>
+  [...new Set(raceStore.participants.map(p => p.categorie))].sort()
+)
+
+const participantsFiltres = computed(() => {
+  return raceStore.participants.filter((p) => {
+
+    if (classe.value && p.classe !== classe.value)
+      return false
+
+    if (categorie.value && p.categorie !== categorie.value)
+      return false
+
+    if (recherche.value) {
+
+      const txt = recherche.value.toLowerCase()
+
+      return (
+        p.nom.toLowerCase().includes(txt) ||
+        p.prenom.toLowerCase().includes(txt)
+      )
+
+    }
+
+    return true
+
+  })
+})
 
 function imprimer() {
   window.print()
@@ -18,6 +54,14 @@ function exporterPDF() {
 
 <template>
   <section class="space-y-6">
+
+  <DossardFilters
+  :classes="classes"
+  :categories="categories"
+  v-model:classe="classe"
+  v-model:categorie="categorie"
+  v-model:recherche="recherche"
+/>
 
     <!-- Barre d'actions -->
     <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -73,7 +117,7 @@ function exporterPDF() {
     >
 
       <DossardCard
-        v-for="participant in participants"
+         v-for="participant in participantsFiltres"
         :key="participant.id"
         :participant="participant"
       />

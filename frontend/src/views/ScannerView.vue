@@ -1,31 +1,162 @@
 <script setup>
-import { ref } from 'vue'
-import { useRaceStore } from '../stores/raceStore'
+import { ref } from "vue"
 
-const raceStore = useRaceStore()
-const bibInput = ref('')
+import { useScannerStore } from "../stores/scannerStore"
+import { useAppStore } from "../stores/appStore"
 
-function validateArrival() {
-  if (!bibInput.value.trim()) return
-  raceStore.markArrival(bibInput.value.trim())
-  bibInput.value = ''
+import ScannerCamera from "../components/scanner/ScannerCamera.vue"
+import LastArrivalCard from "../components/scanner/LastArrivalCard.vue"
+
+const scannerStore = useScannerStore()
+const app = useAppStore()
+
+// Si aucun mode n'est défini,
+// on considère que cette page est un scanner.
+if (app.mode !== "scanner") {
+  app.setScanner(1)
+}
+
+const message = ref("")
+const messageColor = ref("")
+
+function beep(duration = 120) {
+
+  try {
+
+    const context = new AudioContext()
+
+    const oscillator = context.createOscillator()
+
+    const gain = context.createGain()
+
+    oscillator.connect(gain)
+
+    gain.connect(context.destination)
+
+    oscillator.frequency.value = 900
+
+    oscillator.start()
+
+    gain.gain.setValueAtTime(0.15, context.currentTime)
+
+    oscillator.stop(context.currentTime + duration / 1000)
+
+  } catch (e) {}
+
+}
+
+function vibrate(duration = 80) {
+
+  if (navigator.vibrate) {
+
+    navigator.vibrate(duration)
+
+  }
+
+}
+
+function onScanned(code) {
+
+  const result = scannerStore.scanParticipant(
+    code,
+    app.deviceName
+  )
+
+  if (result.success) {
+
+    beep()
+
+    vibrate()
+
+    message.value = "✓ Arrivée enregistrée"
+
+    messageColor.value =
+      "bg-green-100 text-green-700"
+
+  }
+
+  else if (result.duplicate) {
+
+    beep(400)
+
+    vibrate(300)
+
+    message.value =
+      "⚠ Participant déjà scanné"
+
+    messageColor.value =
+      "bg-orange-100 text-orange-700"
+
+  }
+
+  else {
+
+    beep(500)
+
+    message.value = result.message
+
+    messageColor.value =
+      "bg-red-100 text-red-700"
+
+  }
+
+  setTimeout(() => {
+
+    message.value = ""
+
+  }, 1800)
+
 }
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p class="text-sm font-medium uppercase tracking-[0.3em] text-sky-600">Scanner</p>
-      <h2 class="mt-2 text-2xl font-semibold text-slate-900">Validation des arrivées</h2>
-      <p class="mt-3 text-sm text-slate-500">Saisie de démonstration pour simuler un scan de dossard.</p>
 
-      <div class="mt-6 rounded-2xl border border-dashed border-sky-300 bg-sky-50 p-6">
-        <label class="text-sm font-medium text-slate-700" for="bib">Numéro de dossard</label>
-        <div class="mt-3 flex flex-col gap-3 sm:flex-row">
-          <input id="bib" v-model="bibInput" class="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3" placeholder="Ex. 103" />
-          <button class="rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white" @click="validateArrival">Valider l'arrivée</button>
-        </div>
-      </div>
-    </div>
-  </section>
+<section class="space-y-8">
+
+<div>
+
+<p class="uppercase tracking-[0.35em] text-sky-600 text-sm font-semibold">
+
+{{ app.deviceName }}
+
+</p>
+
+<h1 class="mt-2 text-3xl font-bold">
+
+Scanner QR
+
+</h1>
+
+<p class="mt-2 text-slate-500">
+
+Scanner les dossards des participants.
+
+</p>
+
+</div>
+
+<div
+v-if="message"
+:class="messageColor"
+class="rounded-2xl p-5 text-center text-xl font-bold"
+>
+
+{{ message }}
+
+</div>
+
+<div class="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
+
+<ScannerCamera
+@scanned="onScanned"
+/>
+
+<LastArrivalCard
+:arrival="scannerStore.lastArrival"
+/>
+
+</div>
+
+</section>
+
 </template>

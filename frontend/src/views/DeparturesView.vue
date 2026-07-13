@@ -1,26 +1,76 @@
 <script setup>
-import { useRaceStore } from '../stores/raceStore'
+import { computed } from "vue"
+import { useRaceManagerStore } from "../stores/raceManagerStore"
+import { useRaceStore } from "../stores/raceStore"
 
+import RaceCard from "../components/departures/RaceCard.vue"
+
+const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
+
+const races = computed(() => {
+
+  return raceManager.races.map((race) => ({
+
+    ...race,
+
+    participants: raceStore.participants.filter(
+      participant => participant.categorie === race.categorie
+    ).length
+
+  }))
+
+})
+
+function start(categorie) {
+
+  raceManager.startRace(categorie)
+
+}
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p class="text-sm font-medium uppercase tracking-[0.3em] text-sky-600">Départs</p>
-      <h2 class="mt-2 text-2xl font-semibold text-slate-900">Gestion des départs</h2>
-      <p class="mt-3 text-sm text-slate-500">Vue de préparation et de contrôle des coureurs au départ.</p>
 
-      <div class="mt-6 grid gap-4 md:grid-cols-2">
-        <div class="rounded-2xl bg-slate-50 p-4">
-          <p class="text-sm font-semibold text-slate-700">Course prête</p>
-          <p class="mt-2 text-3xl font-semibold text-slate-900">{{ raceStore.participantCount }} coureurs</p>
-        </div>
-        <div class="rounded-2xl bg-sky-50 p-4">
-          <p class="text-sm font-semibold text-sky-700">État du départ</p>
-          <p class="mt-2 text-3xl font-semibold text-slate-900">{{ raceStore.timer.started ? 'En cours' : 'À venir' }}</p>
-        </div>
-      </div>
-    </div>
-  </section>
+<section class="space-y-8">
+
+<div>
+
+<p class="uppercase tracking-[0.35em] text-sky-600 text-sm font-semibold">
+
+CrossManager
+
+</p>
+
+<h1 class="mt-2 text-3xl font-bold">
+
+Gestion des départs
+
+</h1>
+
+<p class="mt-2 text-slate-500">
+
+Vue générale des différentes courses.
+
+</p>
+
+</div>
+
+<div class="grid gap-6 lg:grid-cols-2">
+
+<RaceCard
+
+v-for="race in races"
+
+:key="race.id"
+
+:race="race"
+
+@start="start"
+
+/>
+
+</div>
+
+</section>
+
 </template>
