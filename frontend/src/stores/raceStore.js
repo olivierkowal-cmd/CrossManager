@@ -33,6 +33,8 @@ export const useRaceStore = defineStore(
 
       eventName: "Cross 2026",
 
+      sessionId: "cross-2026",
+
       logo: null,
 
       apiUrl: "",
@@ -65,13 +67,6 @@ export const useRaceStore = defineStore(
     // OUTILS PARTICIPANTS
     // ==================================================
 
-
-    /*
-    --------------------------------------------------
-    Générer un ID unique
-    --------------------------------------------------
-    */
-
     function generateParticipantId() {
 
       if (
@@ -95,12 +90,6 @@ export const useRaceStore = defineStore(
 
     }
 
-
-    /*
-    --------------------------------------------------
-    Générer le prochain numéro de dossard
-    --------------------------------------------------
-    */
 
     function generateNextBibNumber() {
 
@@ -131,12 +120,6 @@ export const useRaceStore = defineStore(
 
     }
 
-
-    /*
-    --------------------------------------------------
-    Formater un dossard
-    --------------------------------------------------
-    */
 
     function formatBibNumber(
       dossard
@@ -172,12 +155,6 @@ export const useRaceStore = defineStore(
     }
 
 
-    /*
-    --------------------------------------------------
-    Vérifier si un dossard existe
-    --------------------------------------------------
-    */
-
     function bibNumberExists(
       dossard,
       excludeId = null
@@ -211,12 +188,6 @@ export const useRaceStore = defineStore(
     }
 
 
-    /*
-    --------------------------------------------------
-    Générer le QR
-    --------------------------------------------------
-    */
-
     function generateQr(
       dossard
     ) {
@@ -230,12 +201,6 @@ export const useRaceStore = defineStore(
 
     }
 
-
-    /*
-    --------------------------------------------------
-    Déterminer la catégorie
-    --------------------------------------------------
-    */
 
     function generateCategory(
       classe,
@@ -269,12 +234,6 @@ export const useRaceStore = defineStore(
     }
 
 
-    /*
-    --------------------------------------------------
-    Recalculer les catégories
-    --------------------------------------------------
-    */
-
     function refreshCategories() {
 
       categories.value = [
@@ -294,12 +253,6 @@ export const useRaceStore = defineStore(
 
     }
 
-
-    /*
-    --------------------------------------------------
-    Synchroniser les courses
-    --------------------------------------------------
-    */
 
     function syncRaceParticipants() {
 
@@ -358,10 +311,6 @@ export const useRaceStore = defineStore(
         rows.map(
           (row, index) => {
 
-            // --------------------------
-            // Classe
-            // --------------------------
-
             const classe =
               String(
                 row.Classe ??
@@ -369,10 +318,6 @@ export const useRaceStore = defineStore(
                 ""
               ).trim()
 
-
-            // --------------------------
-            // Sexe
-            // --------------------------
 
             const sexe =
               String(
@@ -384,20 +329,12 @@ export const useRaceStore = defineStore(
                 .toUpperCase()
 
 
-            // --------------------------
-            // Catégorie
-            // --------------------------
-
             const categorie =
               generateCategory(
                 classe,
                 sexe
               )
 
-
-            // --------------------------
-            // Dossard
-            // --------------------------
 
             const dossard =
               String(
@@ -407,10 +344,6 @@ export const useRaceStore = defineStore(
                 "0"
               )
 
-
-            // --------------------------
-            // Participant
-            // --------------------------
 
             return {
 
@@ -490,10 +423,6 @@ export const useRaceStore = defineStore(
       participant
     ) {
 
-      // --------------------------
-      // Dossard
-      // --------------------------
-
       let dossard =
         participant.dossard
           ? formatBibNumber(
@@ -501,10 +430,6 @@ export const useRaceStore = defineStore(
             )
           : generateNextBibNumber()
 
-
-      // --------------------------
-      // Vérification doublon
-      // --------------------------
 
       if (
         bibNumberExists(
@@ -524,20 +449,12 @@ export const useRaceStore = defineStore(
       }
 
 
-      // --------------------------
-      // Classe
-      // --------------------------
-
       const classe =
         String(
           participant.classe ??
           ""
         ).trim()
 
-
-      // --------------------------
-      // Sexe
-      // --------------------------
 
       const sexe =
         String(
@@ -547,10 +464,6 @@ export const useRaceStore = defineStore(
           .trim()
           .toUpperCase()
 
-
-      // --------------------------
-      // Catégorie
-      // --------------------------
 
       const categorie =
         participant.categorie
@@ -562,10 +475,6 @@ export const useRaceStore = defineStore(
               sexe
             )
 
-
-      // --------------------------
-      // Nouveau participant
-      // --------------------------
 
       const newParticipant = {
 
@@ -677,19 +586,11 @@ export const useRaceStore = defineStore(
       }
 
 
-      // --------------------------
-      // Dossard
-      // --------------------------
-
       const dossard =
         formatBibNumber(
           updatedParticipant.dossard
         )
 
-
-      // --------------------------
-      // Vérification doublon
-      // --------------------------
 
       if (
         bibNumberExists(
@@ -710,20 +611,12 @@ export const useRaceStore = defineStore(
       }
 
 
-      // --------------------------
-      // Classe
-      // --------------------------
-
       const classe =
         String(
           updatedParticipant.classe ??
           ""
         ).trim()
 
-
-      // --------------------------
-      // Sexe
-      // --------------------------
 
       const sexe =
         String(
@@ -733,10 +626,6 @@ export const useRaceStore = defineStore(
           .trim()
           .toUpperCase()
 
-
-      // --------------------------
-      // Catégorie
-      // --------------------------
 
       const categorie =
         updatedParticipant.categorie
@@ -748,10 +637,6 @@ export const useRaceStore = defineStore(
               sexe
             )
 
-
-      // --------------------------
-      // Mise à jour
-      // --------------------------
 
       participants.value[index] = {
 
@@ -829,9 +714,6 @@ export const useRaceStore = defineStore(
             participant.id !== id
         )
 
-
-      // Supprimer également
-      // les arrivées liées
 
       arrivals.value =
         arrivals.value.filter(
@@ -950,17 +832,11 @@ export const useRaceStore = defineStore(
 
     function resetRace() {
 
-      // Supprimer sauvegarde
-
       clearProject()
 
 
-      // Réinitialiser les courses
-
       raceManager.resetAllRaces()
 
-
-      // Réinitialiser participants
 
       participants.value = []
 
@@ -969,8 +845,6 @@ export const useRaceStore = defineStore(
       categories.value = []
 
 
-      // Réinitialiser paramètres
-
       settings.value = {
 
         schoolName:
@@ -978,6 +852,9 @@ export const useRaceStore = defineStore(
 
         eventName:
           "Cross 2026",
+
+        sessionId:
+          "cross-2026",
 
         logo:
           null,
@@ -993,8 +870,6 @@ export const useRaceStore = defineStore(
 
       }
 
-
-      // Réinitialiser chrono
 
       timer.value = {
 
@@ -1144,8 +1019,6 @@ export const useRaceStore = defineStore(
 
     return {
 
-      // État
-
       participants,
 
       arrivals,
@@ -1157,8 +1030,6 @@ export const useRaceStore = defineStore(
       timer,
 
 
-      // Participants
-
       setParticipants,
 
       importParticipants,
@@ -1169,8 +1040,6 @@ export const useRaceStore = defineStore(
 
       deleteParticipant,
 
-
-      // Outils participants
 
       generateParticipantId,
 
@@ -1189,19 +1058,13 @@ export const useRaceStore = defineStore(
       syncRaceParticipants,
 
 
-      // Arrivées
-
       addArrival,
 
-
-      // Projet
 
       restoreProject,
 
       resetRace,
 
-
-      // Getters
 
       participantCount,
 
