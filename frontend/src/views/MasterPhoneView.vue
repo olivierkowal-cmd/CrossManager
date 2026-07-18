@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue"
+
 import { useRaceManagerStore } from "../stores/raceManagerStore"
 import { useRaceStore } from "../stores/raceStore"
 
@@ -13,14 +14,17 @@ const showCountdown = ref(false)
 const countdownValue = ref("")
 const currentRace = ref(null)
 
+const countdownRunning = ref(false)
+const flash = ref("")
+
 const races = computed(() => {
 
-  return raceManager.races.map((race) => ({
+  return raceManager.races.map(race => ({
 
     ...race,
 
     participants: raceStore.participants.filter(
-      (p) => p.categorie === race.categorie
+      participant => participant.categorie === race.categorie
     ).length,
 
   }))
@@ -28,44 +32,154 @@ const races = computed(() => {
 })
 
 const waiting = computed(() =>
-  races.value.filter(r => r.status === "waiting").length
+  races.value.filter(
+    race => race.status === "waiting"
+  ).length
 )
 
 const running = computed(() =>
-  races.value.filter(r => r.status === "running").length
+  races.value.filter(
+    race => race.status === "running"
+  ).length
 )
 
 const finished = computed(() =>
-  races.value.filter(r => r.status === "finished").length
+  races.value.filter(
+    race => race.status === "finished"
+  ).length
 )
 
-async function start(categorie) {
+function sleep(ms){
 
-  const race = races.value.find(r => r.categorie === categorie)
+  return new Promise(resolve=>setTimeout(resolve,ms))
 
-  if (!race) return
+}
 
-  currentRace.value = race
+function beep(power=false){
 
-  showCountdown.value = true
+  try{
 
-  raceManager.startCountdown(categorie)
+    const ctx=new AudioContext()
 
-  for (const value of [3,2,1]){
+    const osc=ctx.createOscillator()
 
-    countdownValue.value = value
+    const gain=ctx.createGain()
 
-    await new Promise(resolve=>setTimeout(resolve,1000))
+    osc.frequency.value=power ? 1400 : 900
+
+    gain.gain.value=power ? .35 : .12
+
+    osc.connect(gain)
+
+    gain.connect(ctx.destination)
+
+    osc.start()
+
+    osc.stop(ctx.currentTime+(power?.28:.08))
 
   }
 
-  countdownValue.value="GO !"
+  catch{}
+
+}
+
+function speak(text){
+
+  if(!("speechSynthesis" in window)) return
+
+  speechSynthesis.cancel()
+
+  const utterance=new SpeechSynthesisUtterance(text)
+
+  utterance.lang="fr-FR"
+
+  utterance.rate=.90
+
+  utterance.pitch=1
+
+  speechSynthesis.speak(utterance)
+
+}
+
+function vibrate(duration=120){
+
+  if(navigator.vibrate){
+
+    navigator.vibrate(duration)
+
+  }
+
+}
+
+async function start(categorie){
+
+  if(countdownRunning.value) return
+
+  countdownRunning.value=true
+
+  const race=races.value.find(
+    race=>race.categorie===categorie
+  )
+
+  if(!race){
+
+    countdownRunning.value=false
+
+    return
+
+  }
+
+  currentRace.value=race
+
+  showCountdown.value=true
+
+  raceManager.startCountdown(categorie)
+
+  for (const value of [5, 4, 3, 2, 1]) {
+
+  countdownValue.value = value
+
+  flash.value = "blue"
+
+  beep()
+
+  vibrate(70)
+
+  speak(String(value))
+
+  setTimeout(() => {
+
+    flash.value = ""
+
+  }, 180)
+
+  await sleep(1000)
+
+}
+
+countdownValue.value = "GO !"
+
+flash.value = "green"
+
+beep(true)
+
+vibrate([300,120,300])
+
+speak("Partez !")
+
+setTimeout(() => {
+
+  flash.value = ""
+
+}, 900)
 
   raceManager.startRace(categorie)
 
-  await new Promise(resolve=>setTimeout(resolve,1000))
+  await sleep(1200)
 
   showCountdown.value=false
+
+  countdownRunning.value=false
 
 }
 </script>
@@ -74,106 +188,79 @@ async function start(categorie) {
 
 <section class="space-y-8">
 
-<div class="rounded-3xl bg-slate-950 p-8 text-white">
+  <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
 
-<p class="text-sky-400 uppercase tracking-[0.4em] font-bold">
+    <p class="text-sky-400 uppercase tracking-[0.40em] font-bold">
+      ISM RÈVES
+    </p>
 
-ISM Rèves
+    <h1 class="mt-3 text-5xl font-black">
+      Téléphone maître
+    </h1>
 
-</p>
+    <p class="mt-3 text-slate-300 text-lg">
+      Pilotage des départs
+    </p>
 
-<h1 class="mt-3 text-4xl font-black">
+    <div class="mt-10 grid gap-5 md:grid-cols-3">
 
-Téléphone maître
+      <div class="rounded-3xl bg-slate-900 p-6 text-center">
 
-</h1>
+        <p class="text-slate-400 text-lg">
+          En attente
+        </p>
 
-<p class="mt-3 text-slate-300">
+        <p class="mt-3 text-6xl font-black text-yellow-400">
+          {{ waiting }}
+        </p>
 
-Pilotage des départs
+      </div>
 
-</p>
+      <div class="rounded-3xl bg-slate-900 p-6 text-center">
 
-<div class="mt-8 grid gap-4 md:grid-cols-3">
+        <p class="text-slate-400 text-lg">
+          En cours
+        </p>
 
-<div class="rounded-2xl bg-slate-900 p-5">
+        <p class="mt-3 text-6xl font-black text-green-400">
+          {{ running }}
+        </p>
 
-<p class="text-slate-400">
+      </div>
 
-En attente
+      <div class="rounded-3xl bg-slate-900 p-6 text-center">
 
-</p>
+        <p class="text-slate-400 text-lg">
+          Terminées
+        </p>
 
-<p class="mt-2 text-5xl font-black text-yellow-400">
+        <p class="mt-3 text-6xl font-black text-blue-400">
+          {{ finished }}
+        </p>
 
-{{ waiting }}
+      </div>
 
-</p>
+    </div>
 
-</div>
+  </div>
 
-<div class="rounded-2xl bg-slate-900 p-5">
+  <div class="grid gap-6 lg:grid-cols-2">
 
-<p class="text-slate-400">
+    <RaceCard
+      v-for="race in races"
+      :key="race.id"
+      :race="race"
+      @start="start"
+    />
 
-En cours
-
-</p>
-
-<p class="mt-2 text-5xl font-black text-green-400">
-
-{{ running }}
-
-</p>
-
-</div>
-
-<div class="rounded-2xl bg-slate-900 p-5">
-
-<p class="text-slate-400">
-
-Terminées
-
-</p>
-
-<p class="mt-2 text-5xl font-black text-blue-400">
-
-{{ finished }}
-
-</p>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="grid gap-6 lg:grid-cols-2">
-
-<RaceCard
-
-v-for="race in races"
-
-:key="race.id"
-
-:race="race"
-
-@start="start"
-
-/>
-
-</div>
+  </div>
 
 <CountdownModal
-
-:visible="showCountdown"
-
-:title="currentRace?.label"
-
-:participants="currentRace?.participants ?? 0"
-
-:value="countdownValue"
-
+  :visible="showCountdown"
+  :title="currentRace?.categorie"
+  :participants="currentRace?.participants ?? 0"
+  :value="countdownValue"
+  :flash="flash"
 />
 
 </section>

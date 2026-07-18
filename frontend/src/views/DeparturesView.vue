@@ -9,9 +9,7 @@ const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
 
 const races = computed(() => {
-
   return raceManager.races.map((race) => ({
-
     ...race,
 
     participants: raceStore.participants.filter(
@@ -19,12 +17,17 @@ const races = computed(() => {
     ).length
 
   }))
-
 })
 
 function start(categorie) {
 
-  raceManager.startRace(categorie)
+  const total = raceStore.participants.filter(
+    participant => participant.categorie === categorie
+  ).length
+
+  raceManager.setParticipants(categorie, total)
+
+  raceManager.startCountdown(categorie)
 
 }
 </script>
@@ -33,43 +36,32 @@ function start(categorie) {
 
 <section class="space-y-8">
 
-<div>
+  <div>
 
-<p class="uppercase tracking-[0.35em] text-sky-600 text-sm font-semibold">
+    <p class="uppercase tracking-[0.35em] text-sky-600 text-sm font-semibold">
+      CrossManager
+    </p>
 
-CrossManager
+    <h1 class="mt-2 text-3xl font-bold">
+      Gestion des départs
+    </h1>
 
-</p>
+    <p class="mt-2 text-slate-500">
+      Vue générale des différentes courses.
+    </p>
 
-<h1 class="mt-2 text-3xl font-bold">
+  </div>
 
-Gestion des départs
+  <div class="grid gap-6 lg:grid-cols-2">
 
-</h1>
+    <RaceCard
+      v-for="race in races"
+      :key="race.id"
+      :race="race"
+      @start="start"
+    />
 
-<p class="mt-2 text-slate-500">
-
-Vue générale des différentes courses.
-
-</p>
-
-</div>
-
-<div class="grid gap-6 lg:grid-cols-2">
-
-<RaceCard
-
-v-for="race in races"
-
-:key="race.id"
-
-:race="race"
-
-@start="start"
-
-/>
-
-</div>
+  </div>
 
 </section>
 

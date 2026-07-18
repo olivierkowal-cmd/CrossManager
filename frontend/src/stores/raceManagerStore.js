@@ -1,6 +1,7 @@
 import { defineStore } from "pinia"
 import { ref } from "vue"
 import { RACES } from "../data/races"
+import { loadProject } from "../services/autoSave.js"
 
 export const useRaceManagerStore = defineStore("raceManager", () => {
 
@@ -10,7 +11,8 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
       categorie: race.categorie,
       label: race.label,
 
-      status: "waiting", // waiting | countdown | running | finished
+      // waiting | countdown | running | finished
+      status: "waiting",
 
       startTime: null,
       finishTime: null,
@@ -22,31 +24,74 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
     }))
   )
 
+  const backup = loadProject()
+
+if (backup?.data?.races) {
+  races.value = backup.data.races
+}
+
   function getRace(categorie) {
-    return races.value.find(r => r.categorie === categorie)
+
+    return races.value.find(
+      race => race.categorie === categorie
+    )
+
+  }
+
+  function getRunningRace() {
+
+    return races.value.find(
+      race => race.status === "running"
+    )
+
+  }
+
+  function getWaitingRaces() {
+
+    return races.value.filter(
+      race => race.status === "waiting"
+    )
+
+  }
+
+  function getFinishedRaces() {
+
+    return races.value.filter(
+      race => race.status === "finished"
+    )
+
   }
 
   function startCountdown(categorie) {
+
     const race = getRace(categorie)
+
     if (!race) return
 
     race.status = "countdown"
+
   }
 
   function startRace(categorie) {
+
     const race = getRace(categorie)
+
     if (!race) return
 
     race.status = "running"
     race.startTime = Date.now()
+
   }
 
   function finishRace(categorie) {
+
     const race = getRace(categorie)
+
     if (!race) return
 
     race.status = "finished"
     race.finishTime = Date.now()
+
   }
 
   function resetRace(categorie) {
@@ -58,6 +103,7 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
     race.status = "waiting"
     race.startTime = null
     race.finishTime = null
+    race.participants = 0
     race.arrivals = 0
     race.results = []
 
@@ -70,6 +116,7 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
       race.status = "waiting"
       race.startTime = null
       race.finishTime = null
+      race.participants = 0
       race.arrivals = 0
       race.results = []
 
@@ -95,7 +142,7 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
 
       return {
         success: false,
-        message: "Course introuvable"
+        message: "Course introuvable",
       }
 
     }
@@ -104,7 +151,7 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
 
       return {
         success: false,
-        message: "La course n'est pas démarrée"
+        message: "La course n'est pas démarrée",
       }
 
     }
@@ -140,13 +187,15 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
 
     }
 
-    return {
+return {
 
-      success: true,
+  success: true,
 
-      arrival
+  participant,
 
-    }
+  arrival,
+
+}
 
   }
 
@@ -173,6 +222,12 @@ export const useRaceManagerStore = defineStore("raceManager", () => {
     races,
 
     getRace,
+
+    getRunningRace,
+
+    getWaitingRaces,
+
+    getFinishedRaces,
 
     startCountdown,
 

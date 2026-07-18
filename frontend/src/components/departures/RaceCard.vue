@@ -17,95 +17,137 @@ function startRace() {
 </script>
 
 <template>
-  <div
-    class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-lg"
-  >
-    <div class="flex items-start justify-between">
-      <div>
-        <h2 class="text-xl font-bold text-slate-900">
-          {{ race.label }}
-        </h2>
 
-        <p class="mt-1 text-slate-500">
-          {{ race.participants }} participants
-        </p>
-      </div>
+<div
+  class="group rounded-3xl border border-slate-200 bg-white p-6 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+>
 
-      <RaceStatusBadge :status="race.status" />
-    </div>
+  <div class="flex items-start justify-between">
 
-    <div class="mt-6 space-y-4">
+    <div>
 
-      <div class="flex items-center justify-between">
-        <span class="text-slate-500">
-          Départ
-        </span>
+      <h2 class="text-2xl font-black text-slate-900">
 
-        <span
-          v-if="race.startTime"
-          class="font-semibold"
-        >
-          {{ new Date(race.startTime).toLocaleTimeString() }}
-        </span>
+        {{ race.label }}
 
-        <span
-          v-else
-          class="text-slate-400"
-        >
-          --
-        </span>
-      </div>
+      </h2>
 
-      <div class="flex items-center justify-between">
-        <span class="text-slate-500">
-          Temps écoulé
-        </span>
+      <p class="mt-2 text-slate-500">
 
-        <RaceTimer :race="race" />
-      </div>
+        👥 {{ race.participants }} participants
 
-      <div class="flex items-center justify-between">
-        <span class="text-slate-500">
-          Arrivées
-        </span>
-
-        <span class="font-bold">
-          {{ race.arrivals }} / {{ race.participants }}
-        </span>
-      </div>
+      </p>
 
     </div>
 
-    <button
-      v-if="race.status === 'waiting'"
-      @click="startRace"
-      class="mt-8 w-full rounded-xl bg-sky-600 py-3 text-lg font-semibold text-white transition hover:bg-sky-700"
-    >
-      🏁 Démarrer
-    </button>
+    <RaceStatusBadge
+      :status="race.status"
+    />
 
-    <button
-      v-else-if="race.status === 'running'"
-      disabled
-      class="mt-8 w-full rounded-xl bg-green-600 py-3 text-lg font-semibold text-white opacity-90"
-    >
-      🟢 Course en cours
-    </button>
-
-    <button
-      v-else-if="race.status === 'countdown'"
-      disabled
-      class="mt-8 w-full rounded-xl bg-orange-500 py-3 text-lg font-semibold text-white"
-    >
-      ⏳ Compte à rebours
-    </button>
-
-    <button
-      v-else
-      disabled
-      class="mt-8 w-full rounded-xl bg-slate-700 py-3 text-lg font-semibold text-white"
-    >
-      ✅ Terminée
-    </button>
   </div>
+
+  <div class="mt-8 space-y-5">
+
+    <div class="flex justify-between">
+
+      <span class="text-slate-500">
+
+        🕒 Départ
+
+      </span>
+
+      <span
+        v-if="race.startTime"
+        class="font-bold"
+      >
+
+        {{ new Date(race.startTime).toLocaleTimeString() }}
+
+      </span>
+
+      <span
+        v-else
+        class="text-slate-400"
+      >
+
+        --
+
+      </span>
+
+    </div>
+
+    <div class="flex justify-between">
+
+      <span class="text-slate-500">
+
+        ⏱ Chrono
+
+      </span>
+
+      <RaceTimer
+        :race="race"
+      />
+
+    </div>
+
+    <div class="flex justify-between">
+
+      <span class="text-slate-500">
+
+        🏁 Arrivées
+
+      </span>
+
+      <span class="font-black text-lg">
+
+        {{ race.arrivals }} / {{ race.participants }}
+
+      </span>
+
+    </div>
+
+  </div>
+
+  <button
+    v-if="race.status === 'waiting'"
+    @click="startRace"
+    class="mt-8 w-full rounded-2xl bg-sky-600 py-4 text-xl font-bold text-white transition-all duration-300 hover:bg-sky-700 hover:scale-[1.02] active:scale-95"
+  >
+
+    🏁 Démarrer
+
+  </button>
+
+  <button
+    v-else-if="race.status === 'countdown'"
+    disabled
+    class="mt-8 w-full rounded-2xl bg-orange-500 py-4 text-xl font-bold text-white animate-pulse"
+  >
+
+    ⏳ Départ en cours...
+
+  </button>
+
+  <button
+    v-else-if="race.status === 'running'"
+    disabled
+    class="mt-8 w-full rounded-2xl bg-green-600 py-4 text-xl font-bold text-white"
+  >
+
+    🟢 Course en cours
+
+  </button>
+
+  <button
+    v-else
+    disabled
+    class="mt-8 w-full rounded-2xl bg-slate-700 py-4 text-xl font-bold text-white"
+  >
+
+    ✅ Course terminée
+
+  </button>
+
+</div>
+
 </template>

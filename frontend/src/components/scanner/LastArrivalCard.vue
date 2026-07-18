@@ -1,4 +1,6 @@
 <script setup>
+import { getRaceLabel } from "../../utils/categoryLabel"
+
 const props = defineProps({
   arrival: {
     type: Object,
@@ -7,6 +9,7 @@ const props = defineProps({
 })
 
 function formatTime(ms) {
+
   if (!ms) return "--:--"
 
   const total = Math.floor(ms / 1000)
@@ -15,109 +18,203 @@ function formatTime(ms) {
   const seconds = total % 60
 
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+
 }
 
 function formatClock(time) {
+
   if (!time) return "--:--:--"
 
   return new Date(time).toLocaleTimeString()
+
 }
 </script>
 
 <template>
-  <div class="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
 
-    <h2 class="text-xl font-bold text-slate-900">
-      Dernière arrivée
-    </h2>
+<div
+class="rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden"
+>
 
-    <template v-if="arrival">
+<div
+v-if="arrival"
+class="animate-fade"
+>
 
-      <div class="mt-6">
+<div
+class="bg-green-600 py-8 text-center text-white"
+>
 
-        <p class="text-3xl font-black text-green-600">
-          ✓ {{ arrival.participant.prenom }} {{ arrival.participant.nom }}
-        </p>
+<div class="text-8xl">
 
-        <p class="mt-2 text-lg text-slate-600">
-          {{ arrival.participant.categorie }}
-        </p>
+✅
 
-      </div>
+</div>
 
-      <div class="mt-8 grid grid-cols-2 gap-4">
+<h2
+class="mt-3 text-4xl font-black"
+>
 
-        <div class="rounded-2xl bg-slate-50 p-4">
+{{ arrival.participant.prenom }}
+{{ arrival.participant.nom }}
 
-          <p class="text-sm text-slate-500">
-            Position
-          </p>
+</h2>
 
-          <p class="mt-2 text-3xl font-bold">
-            {{ arrival.position }}
-          </p>
+<p
+class="mt-2 text-2xl font-semibold text-green-100"
+>
 
-        </div>
+{{ getRaceLabel(arrival.participant.categorie) }}
 
-        <div class="rounded-2xl bg-slate-50 p-4">
+</p>
 
-          <p class="text-sm text-slate-500">
-            Temps
-          </p>
+</div>
 
-          <p class="mt-2 text-3xl font-bold">
-            {{ formatTime(arrival.elapsedTime) }}
-          </p>
+<div class="grid grid-cols-2 gap-5 p-6">
 
-        </div>
+<div
+class="rounded-2xl bg-slate-100 p-5 text-center"
+>
 
-      </div>
+<p class="text-slate-500">
 
-      <div class="mt-6 grid grid-cols-2 gap-4">
+Position
 
-        <div class="rounded-2xl bg-slate-50 p-4">
+</p>
 
-          <p class="text-sm text-slate-500">
-            Scanner
-          </p>
+<p
+class="mt-2 text-5xl font-black text-sky-700"
+>
 
-          <p class="mt-2 font-bold">
-            {{ arrival.scanner }}
-          </p>
+{{ arrival.position }}
 
-        </div>
+</p>
 
-        <div class="rounded-2xl bg-slate-50 p-4">
+</div>
 
-          <p class="text-sm text-slate-500">
-            Heure
-          </p>
+<div
+class="rounded-2xl bg-slate-100 p-5 text-center"
+>
 
-          <p class="mt-2 font-bold">
-            {{ formatClock(arrival.arrivalTime) }}
-          </p>
+<p class="text-slate-500">
 
-        </div>
+Temps
 
-      </div>
+</p>
 
-    </template>
+<p
+class="mt-2 text-5xl font-black text-green-700"
+>
 
-    <template v-else>
+{{ formatTime(arrival.elapsedTime) }}
 
-      <div class="py-16 text-center text-slate-400">
+</p>
 
-        <div class="text-6xl">
-          🏁
-        </div>
+</div>
 
-        <p class="mt-4 text-lg">
-          Aucun participant scanné
-        </p>
+</div>
 
-      </div>
+<div class="border-t p-6">
 
-    </template>
+<div
+class="flex items-center justify-between text-lg"
+>
 
-  </div>
+<span class="text-slate-500">
+
+📱 Scanner
+
+</span>
+
+<strong
+class="text-3xl font-black"
+>
+
+{{ arrival.scanner.replace("Scanner ", "") }}
+
+</strong>
+
+</div>
+
+<div
+class="mt-4 flex items-center justify-between text-lg"
+>
+
+<span class="text-slate-500">
+
+🕒 Heure
+
+</span>
+
+<strong>
+
+{{ formatClock(arrival.arrivalTime) }}
+
+</strong>
+
+</div>
+
+</div>
+
+</div>
+
+<div
+v-else
+class="flex h-[520px] flex-col items-center justify-center"
+>
+
+<div class="text-8xl">
+
+📷
+
+</div>
+
+<h2
+class="mt-6 text-4xl font-black text-slate-700"
+>
+
+Scanner prêt
+
+</h2>
+
+<p
+class="mt-3 text-xl text-slate-400"
+>
+
+En attente d'un dossard...
+
+</p>
+
+</div>
+
+</div>
+
 </template>
+
+<style scoped>
+
+.animate-fade{
+
+animation:arrival .35s ease;
+
+}
+
+@keyframes arrival{
+
+0%{
+
+opacity:0;
+transform:scale(.95);
+
+}
+
+100%{
+
+opacity:1;
+transform:scale(1);
+
+}
+
+}
+
+</style>

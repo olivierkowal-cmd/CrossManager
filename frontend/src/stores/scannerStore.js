@@ -1,5 +1,5 @@
 import { defineStore } from "pinia"
-import { ref } from "vue"
+import { ref, computed } from "vue"
 
 import { useRaceStore } from "./raceStore"
 import { useRaceManagerStore } from "./raceManagerStore"
@@ -12,14 +12,32 @@ export const useScannerStore = defineStore("scanner", () => {
   const arrivals = ref([])
 
   const lastArrival = ref(null)
+  const totalScans = computed(() => arrivals.value.length)
 
   function scanParticipant(participantId, scanner = "Scanner 1") {
 
-    participantId = Number(participantId)
+   let participant = null
 
-    const participant = raceStore.participants.find(
-      p => Number(p.id) === participantId
-    )
+if (
+  typeof participantId === "string" &&
+  participantId.startsWith("CM-")
+) {
+
+  participant = raceStore.participants.find(
+    p => p.qr === participantId.trim()
+  )
+
+} else {
+
+  const id = Number(participantId)
+
+  participant = raceStore.participants.find(
+    p =>
+      Number(p.id) === id ||
+      Number(p.dossard) === id
+  )
+
+}
 
     if (!participant) {
 
@@ -87,6 +105,8 @@ export const useScannerStore = defineStore("scanner", () => {
     arrivals,
 
     lastArrival,
+    
+    totalScans,
 
     scanParticipant,
 

@@ -10,16 +10,15 @@ import LastArrivalCard from "../components/scanner/LastArrivalCard.vue"
 const scannerStore = useScannerStore()
 const app = useAppStore()
 
-// Si aucun mode n'est défini,
-// on considère que cette page est un scanner.
 if (app.mode !== "scanner") {
   app.setScanner(1)
 }
 
 const message = ref("")
 const messageColor = ref("")
+const success = ref(false)
 
-function beep(duration = 120) {
+function beep(duration = 120, frequency = 900) {
 
   try {
 
@@ -33,21 +32,43 @@ function beep(duration = 120) {
 
     gain.connect(context.destination)
 
-    oscillator.frequency.value = 900
+    oscillator.frequency.value = frequency
+
+    gain.gain.value = 0.15
 
     oscillator.start()
 
-    gain.gain.setValueAtTime(0.15, context.currentTime)
+    oscillator.stop(
+      context.currentTime + duration / 1000
+    )
 
-    oscillator.stop(context.currentTime + duration / 1000)
+  }
 
-  } catch (e) {}
+  catch {}
 
 }
 
-function vibrate(duration = 80) {
+function successBeep(){
 
-  if (navigator.vibrate) {
+  beep(120,950)
+
+}
+
+function warningBeep(){
+
+  beep(300,650)
+
+}
+
+function errorBeep(){
+
+  beep(450,350)
+
+}
+
+function vibrate(duration=80){
+
+  if(navigator.vibrate){
 
     navigator.vibrate(duration)
 
@@ -55,56 +76,71 @@ function vibrate(duration = 80) {
 
 }
 
-function onScanned(code) {
+async function onScanned(code){
 
-  const result = scannerStore.scanParticipant(
+  const result = await scannerStore.scanParticipant(
     code,
     app.deviceName
   )
 
-  if (result.success) {
+  console.log("Résultat :", result)
+  console.log("Participant :", result.participant)
 
-    beep()
+  if(result.success){
 
-    vibrate()
+    success.value = true
 
-    message.value = "✓ Arrivée enregistrée"
+    successBeep()
 
-    messageColor.value =
-      "bg-green-100 text-green-700"
-
-  }
-
-  else if (result.duplicate) {
-
-    beep(400)
-
-    vibrate(300)
+    vibrate(70)
 
     message.value =
-      "⚠ Participant déjà scanné"
+      `${result.participant.prenom} ${result.participant.nom}`
 
     messageColor.value =
-      "bg-orange-100 text-orange-700"
+      "bg-green-600"
 
   }
 
-  else {
+  else if(result.duplicate){
 
-    beep(500)
+    success.value = false
 
-    message.value = result.message
+    warningBeep()
+
+    vibrate(250)
+
+    message.value =
+      "Participant déjà scanné"
 
     messageColor.value =
-      "bg-red-100 text-red-700"
+      "bg-orange-500"
 
   }
 
-  setTimeout(() => {
+  else{
 
-    message.value = ""
+    success.value = false
 
-  }, 1800)
+    errorBeep()
+
+    vibrate([120,80,120])
+
+    message.value =
+      result.message
+
+    messageColor.value =
+      "bg-red-600"
+
+  }
+
+  setTimeout(()=>{
+
+    message.value=""
+
+    success.value=false
+
+  },1800)
 
 }
 </script>
@@ -113,50 +149,158 @@ function onScanned(code) {
 
 <section class="space-y-8">
 
-<div>
+  <div>
 
-<p class="uppercase tracking-[0.35em] text-sky-600 text-sm font-semibold">
+    <p class="text-sm font-semibold uppercase tracking-[0.35em] text-sky-600">
+      {{ app.deviceName }}
+    </p>
 
-{{ app.deviceName }}
+    <h1 class="mt-2 text-4xl font-black">
+      Scanner QR
+    </h1>
 
-</p>
+    <p class="mt-2 text-slate-500">
+      Scanner les dossards des participants
+    </p>
 
-<h1 class="mt-2 text-3xl font-bold">
+  </div>
 
-Scanner QR
+  <!-- Validation -->
 
-</h1>
+  <transition name="scan">
 
-<p class="mt-2 text-slate-500">
+    <div
+      v-if="message"
+      :class="messageColor"
+      class="overflow-hidden rounded-3xl shadow-2xl"
+    >
 
-Scanner les dossards des participants.
+      <!-- Succès -->
 
-</p>
-
-</div>
-
-<div
-v-if="message"
-:class="messageColor"
-class="rounded-2xl p-5 text-center text-xl font-bold"
+      <div
+  v-if="success"
+  class="py-10 text-center text-white"
 >
 
-{{ message }}
+  <div class="text-8xl">
+    ✅
+  </div>
+
+  <h2 class="mt-4 text-5xl font-black">
+    {{ scannerStore.lastArrival?.participant.prenom }}
+    {{ scannerStore.lastArrival?.participant.nom }}
+  </h2>
+
+  <p class="mt-2 text-2xl text-green-100">
+    {{ scannerStore.lastArrival?.participant.categorie }}
+  </p>
+
+  <div class="mx-auto mt-8 max-w-md rounded-2xl bg-white/10 p-6">
+
+    <div class="flex justify-between text-2xl">
+      <span>Temps</span>
+
+      <strong>
+        {{ Math.floor((scannerStore.lastArrival?.elapsedTime ?? 0)/60000)
+          .toString()
+          .padStart(2,"0") }}
+        :
+        {{
+          Math.floor(((scannerStore.lastArrival?.elapsedTime ?? 0)%60000)/1000)
+            .toString()
+            .padStart(2,"0")
+        }}
+      </strong>
+
+    </div>
+
+    <div class="mt-4 flex justify-between text-2xl">
+
+      <span>Position</span>
+
+      <strong>
+
+        {{ scannerStore.lastArrival?.position }}
+
+      </strong>
+
+    </div>
+
+    <div class="mt-4 flex justify-between text-xl">
+
+      <span>Scanner</span>
+
+      <strong>
+
+        {{ scannerStore.lastArrival?.scanner }}
+
+      </strong>
+
+    </div>
+
+  </div>
 
 </div>
 
-<div class="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
+      <!-- Erreur -->
 
-<ScannerCamera
-@scanned="onScanned"
-/>
+      <div
+        v-else
+        class="py-10 text-center text-white"
+      >
 
-<LastArrivalCard
-:arrival="scannerStore.lastArrival"
-/>
+        <div class="text-8xl">
+          ❌
+        </div>
 
-</div>
+        <h2 class="mt-4 text-4xl font-black">
+
+          {{ message }}
+
+        </h2>
+
+      </div>
+
+    </div>
+
+  </transition>
+
+  <!-- Caméra -->
+
+  <div class="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+
+    <ScannerCamera
+      @scanned="onScanned"
+    />
+
+    <LastArrivalCard
+      :arrival="scannerStore.lastArrival"
+    />
+
+  </div>
 
 </section>
 
 </template>
+
+<style scoped>
+
+.scan-enter-active,
+.scan-leave-active{
+
+  transition:
+    opacity .30s ease,
+    transform .30s ease;
+
+}
+
+.scan-enter-from,
+.scan-leave-to{
+
+  opacity:0;
+
+  transform:scale(.92);
+
+}
+
+</style>

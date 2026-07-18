@@ -1,37 +1,195 @@
 <script setup>
-import { computed } from 'vue'
-import { useRaceStore } from '../stores/raceStore'
+import { computed, ref } from "vue"
 
-const raceStore = useRaceStore()
-const sortedArrivals = computed(() => [...raceStore.arrivals].slice(0, 5))
+import { useRaceManagerStore } from "../stores/raceManagerStore"
+
+import ResultsTable from "../components/results/ResultsTable.vue"
+
+import { exportResultsToExcel } from "../services/excelExport"
+
+const raceManager = useRaceManagerStore()
+
+const selectedCategory = ref("all")
+const search = ref("")
+
+const categories = computed(() => {
+
+  return raceManager.races.map(r => ({
+
+    label: r.label,
+
+    value: r.categorie,
+
+  }))
+
+})
+
+const results = computed(() => {
+
+  let list = raceManager.races.flatMap(r => r.results)
+
+  if (selectedCategory.value !== "all") {
+
+    list = list.filter(
+      r => r.participant.categorie === selectedCategory.value
+    )
+
+  }
+
+  if (search.value.trim()) {
+
+    const value = search.value.toLowerCase()
+
+    list = list.filter(r => {
+
+      const fullname =
+        `${r.participant.prenom} ${r.participant.nom}`.toLowerCase()
+
+      return fullname.includes(value)
+
+    })
+
+  }
+
+  return [...list].sort(
+    (a, b) => a.elapsedTime - b.elapsedTime
+  )
+
+})
+
+function exportPdf() {
+
+  alert("Export PDF disponible prochainement.")
+
+}
+
+function exportExcel() {
+
+  exportResultsToExcel(raceManager.races)
+
+}
+
+function printResults() {
+
+  window.print()
+
+}
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p class="text-sm font-medium uppercase tracking-[0.3em] text-sky-600">Résultats</p>
-      <h2 class="mt-2 text-2xl font-semibold text-slate-900">Classement temporaire</h2>
 
-      <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-          <thead class="bg-slate-50">
-            <tr>
-              <th class="px-4 py-3 font-semibold text-slate-700">Place</th>
-              <th class="px-4 py-3 font-semibold text-slate-700">Nom</th>
-              <th class="px-4 py-3 font-semibold text-slate-700">Dossard</th>
-              <th class="px-4 py-3 font-semibold text-slate-700">Temps</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 bg-white">
-            <tr v-for="(arrival, index) in sortedArrivals" :key="arrival.id">
-              <td class="px-4 py-3 font-semibold text-slate-700">{{ index + 1 }}</td>
-              <td class="px-4 py-3">{{ arrival.name }}</td>
-              <td class="px-4 py-3">{{ arrival.bib }}</td>
-              <td class="px-4 py-3">{{ arrival.time }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+<section class="space-y-8">
+
+  <div>
+
+    <p class="text-sm font-semibold uppercase tracking-[0.35em] text-sky-600">
+
+      CrossManager
+
+    </p>
+
+    <h1 class="mt-2 text-4xl font-black">
+
+      Résultats
+
+    </h1>
+
+    <p class="mt-2 text-slate-500">
+
+      Classements et arrivées.
+
+    </p>
+
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-[1fr_300px_auto_auto_auto]">
+
+    <input
+
+      v-model="search"
+
+      type="text"
+
+      placeholder="🔍 Rechercher un participant..."
+
+      class="rounded-xl border p-3"
+
+    />
+
+    <select
+
+      v-model="selectedCategory"
+
+      class="rounded-xl border p-3"
+
+    >
+
+      <option value="all">
+
+        Toutes les catégories
+
+      </option>
+
+      <option
+
+        v-for="category in categories"
+
+        :key="category.value"
+
+        :value="category.value"
+
+      >
+
+        {{ category.label }}
+
+      </option>
+
+    </select>
+
+    <button
+
+      class="rounded-xl bg-red-600 px-6 py-3 font-bold text-white transition hover:bg-red-700"
+
+      @click="exportPdf"
+
+    >
+
+      📄 PDF
+
+    </button>
+
+    <button
+
+      class="rounded-xl bg-green-600 px-6 py-3 font-bold text-white transition hover:bg-green-700"
+
+      @click="exportExcel"
+
+    >
+
+      📊 Excel
+
+    </button>
+
+    <button
+
+      class="rounded-xl bg-slate-800 px-6 py-3 font-bold text-white transition hover:bg-slate-900"
+
+      @click="printResults"
+
+    >
+
+      🖨 Imprimer
+
+    </button>
+
+  </div>
+
+  <ResultsTable
+
+    :results="results"
+
+  />
+
+</section>
+
 </template>

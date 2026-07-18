@@ -1,19 +1,58 @@
 <script setup>
-// Barre latérale de navigation responsive pour les modules de course.
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed } from "vue"
+import { useRoute } from "vue-router"
+import { useRaceStore } from "../stores/raceStore"
+
+const raceStore = useRaceStore()
 
 const route = useRoute()
-const links = computed(() => [
-  { name: 'Dashboard', path: '/', icon: '▣' },
-  { name: 'Téléphone maître', path: '/master-phone', icon: '📱' },
-  { name: 'Scanner', path: '/scanner', icon: '📷' },
-  { name: 'Écran TV', path: '/tv-screen', icon: '📺' },
-  { name: 'Participants', path: '/participants', icon: '👥' },
-  { name: 'Dossards', path: '/dossards', icon: '🏷️' },
-  { name: 'Départs', path: '/departures', icon: '🏁' },
-  { name: 'Résultats', path: '/results', icon: '✅' },
-  { name: 'Paramètres', path: '/settings', icon: '⚙️' },
+
+const menus = computed(() => [
+  {
+    title: "Dashboard",
+    icon: "🏠",
+    path: "/",
+  },
+  {
+    title: "Participants",
+    icon: "👥",
+    path: "/participants",
+  },
+  {
+    title: "Courses",
+    icon: "🏁",
+    path: "/departures",
+  },
+  {
+    title: "Scanner",
+    icon: "📷",
+    path: "/scanner",
+  },
+  {
+    title: "Résultats",
+    icon: "🏆",
+    path: "/results",
+  },
+  {
+    title: "Dossards",
+    icon: "🏷️",
+    path: "/dossards",
+  },
+  {
+    title: "Téléphone maître",
+    icon: "📱",
+    path: "/master-phone",
+  },
+  {
+    title: "Écran TV",
+    icon: "📺",
+    path: "/tv-screen",
+  },
+  {
+    title: "Paramètres",
+    icon: "⚙️",
+    path: "/settings",
+  },
 ])
 
 function isActive(path) {
@@ -22,28 +61,149 @@ function isActive(path) {
 </script>
 
 <template>
-  <aside class="w-full border-b border-slate-200 bg-slate-950 text-white lg:w-72 lg:border-b-0 lg:border-r">
-    <div class="p-5">
-      <div class="flex items-center gap-3">
-        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500 text-lg font-bold">C</div>
-        <div>
-          <p class="text-lg font-semibold">CrossManager</p>
-          <p class="text-sm text-slate-400">Gestion de course</p>
-        </div>
+  <aside class="sidebar">
+
+    <div class="logo">
+
+      <div class="logo-icon">
+      🏁
       </div>
+
+      <div>
+
+        <h2>CrossManager</h2>
+
+      <p>Version 1.0</p>
+
+      </div>
+
     </div>
 
-    <nav class="space-y-1 px-3 pb-5">
+    <nav>
+
       <router-link
-        v-for="link in links"
-        :key="link.path"
-        :to="link.path"
-        class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition"
-        :class="isActive(link.path) ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'"
+        v-for="menu in menus"
+        :key="menu.path"
+        :to="menu.path"
+        class="item"
+        :class="{ active: isActive(menu.path) }"
       >
-        <span class="text-base">{{ link.icon }}</span>
-        {{ link.name }}
+
+        <span class="icon">
+          {{ menu.icon }}
+        </span>
+
+        <span>
+          {{ menu.title }}
+        </span>
+
       </router-link>
+
     </nav>
+
+  <div class="footer">
+
+  <div class="school">
+    🏫 {{ raceStore.settings.schoolName || "Aucun établissement" }}
+  </div>
+
+  <div class="status">
+    💾 Sauvegarde automatique
+  </div>
+
+</div>
+
   </aside>
 </template>
+
+<style scoped>
+.sidebar{
+  width:280px;
+  min-width:280px;
+  background:#020617;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid #1e293b;
+}
+
+.logo{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:28px 22px;
+  border-bottom:1px solid #1e293b;
+}
+
+.logo-icon{
+  width:54px;
+  height:54px;
+  border-radius:16px;
+  background:#0ea5e9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  font-weight:800;
+}
+
+.logo h2{
+  margin:0;
+  font-size:1.25rem;
+}
+
+.logo p{
+  margin-top:4px;
+  color:#94a3b8;
+}
+
+nav{
+  padding:18px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.item{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:14px 16px;
+  color:#cbd5e1;
+  text-decoration:none;
+  border-radius:14px;
+  transition:.2s;
+}
+
+.item:hover{
+  background:#1e293b;
+  color:white;
+}
+
+.item.active{
+  background:#0ea5e9;
+  color:white;
+}
+
+.icon{
+  font-size:22px;
+}
+
+.footer{
+  margin-top:auto;
+  padding:20px;
+  border-top:1px solid #1e293b;
+  color:#94a3b8;
+  font-size:.9rem;
+}
+
+.school{
+  font-weight:700;
+  color:white;
+}
+
+.status{
+  margin-top:8px;
+}
+
+</style>
