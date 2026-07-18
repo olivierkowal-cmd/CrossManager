@@ -67,6 +67,14 @@ const filterPresence =
 
 
 // ==================================================
+// SÉLECTION MULTIPLE
+// ==================================================
+
+const selectedParticipants =
+  ref([])
+
+
+// ==================================================
 // FORMULAIRE
 // ==================================================
 
@@ -365,6 +373,216 @@ const filteredParticipants =
 
 
 // ==================================================
+// TOUS LES PARTICIPANTS FILTRÉS SÉLECTIONNÉS
+// ==================================================
+
+const allFilteredSelected =
+  computed(() => {
+
+    if (
+      filteredParticipants.value.length === 0
+    ) {
+
+      return false
+
+    }
+
+    return filteredParticipants.value.every(
+      participant =>
+
+        selectedParticipants.value.includes(
+          participant.id
+        )
+    )
+
+  })
+
+
+// ==================================================
+// SÉLECTIONNER / DÉSÉLECTIONNER TOUS
+// ==================================================
+
+function toggleSelectAll() {
+
+  const filteredIds =
+    filteredParticipants.value.map(
+      participant =>
+        participant.id
+    )
+
+
+  // Si tous les participants filtrés
+  // sont déjà sélectionnés,
+  // on les retire de la sélection.
+
+  if (
+    allFilteredSelected.value
+  ) {
+
+    selectedParticipants.value =
+      selectedParticipants.value.filter(
+        id =>
+          !filteredIds.includes(
+            id
+          )
+      )
+
+    return
+
+  }
+
+
+  // Sinon on ajoute tous
+  // les participants filtrés.
+
+  const ids =
+    new Set(
+      selectedParticipants.value
+    )
+
+
+  filteredParticipants.value.forEach(
+    participant => {
+
+      ids.add(
+        participant.id
+      )
+
+    }
+  )
+
+
+  selectedParticipants.value =
+    [...ids]
+
+}
+
+
+// ==================================================
+// ANNULER LA SÉLECTION
+// ==================================================
+
+function clearSelection() {
+
+  selectedParticipants.value =
+    []
+
+}
+
+
+// ==================================================
+// MARQUER LA SÉLECTION PRÉSENTE / ABSENTE
+// ==================================================
+
+function setSelectedPresence(
+  present
+) {
+
+  if (
+    selectedParticipants.value.length === 0
+  ) {
+
+    return
+
+  }
+
+
+  selectedParticipants.value.forEach(
+    id => {
+
+      const participant =
+        raceStore.participants.find(
+          participant =>
+            participant.id === id
+        )
+
+
+      if (
+        !participant
+      ) {
+
+        return
+
+      }
+
+
+      raceStore.updateParticipant({
+
+        ...participant,
+
+        present,
+
+      })
+
+    }
+  )
+
+
+  clearSelection()
+
+}
+
+
+// ==================================================
+// SUPPRIMER LA SÉLECTION
+// ==================================================
+
+function deleteSelectedParticipants() {
+
+  const count =
+    selectedParticipants.value.length
+
+
+  if (
+    count === 0
+  ) {
+
+    return
+
+  }
+
+
+  const confirmation =
+    window.confirm(
+
+      `Supprimer définitivement ${count} participant(s) sélectionné(s) ?`
+
+    )
+
+
+  if (
+    !confirmation
+  ) {
+
+    return
+
+  }
+
+
+  const ids =
+    [
+      ...selectedParticipants.value,
+    ]
+
+
+  ids.forEach(
+    id => {
+
+      raceStore
+        .deleteParticipant(
+          id
+        )
+
+    }
+  )
+
+
+  clearSelection()
+
+}
+
+
+// ==================================================
 // CARTES RÉSUMÉ
 // ==================================================
 
@@ -446,8 +664,6 @@ function openCreateDialog() {
     emptyForm()
   )
 
-
-  // Dossard automatique
 
   form.dossard =
     raceStore
@@ -551,6 +767,12 @@ function updateAutomaticCategory() {
   if (
     !form.classe
   ) {
+
+    form.niveau =
+      ""
+
+    form.categorie =
+      ""
 
     return
 
@@ -735,10 +957,6 @@ function submitForm() {
   let result
 
 
-  // --------------------------
-  // Modification
-  // --------------------------
-
   if (
     editingParticipant.value
   ) {
@@ -755,14 +973,7 @@ function submitForm() {
 
         })
 
-  }
-
-
-  // --------------------------
-  // Création
-  // --------------------------
-
-  else {
+  } else {
 
     result =
       raceStore
@@ -772,10 +983,6 @@ function submitForm() {
 
   }
 
-
-  // --------------------------
-  // Erreur
-  // --------------------------
 
   if (
     !result?.success
@@ -847,6 +1054,13 @@ function removeParticipant(
     )
 
   }
+
+
+  selectedParticipants.value =
+    selectedParticipants.value.filter(
+      id =>
+        id !== participant.id
+    )
 
 }
 
@@ -920,6 +1134,9 @@ async function handleExcelSelection(
         .importParticipants(
           file
         )
+
+
+    clearSelection()
 
 
     importMessage.value =
@@ -1022,13 +1239,9 @@ function resetFilters() {
         </div>
 
 
-        <!-- ACTIONS -->
-
         <div
           class="flex flex-wrap gap-3"
         >
-
-          <!-- INPUT EXCEL CACHÉ -->
 
           <input
             ref="fileInput"
@@ -1038,8 +1251,6 @@ function resetFilters() {
             @change="handleExcelSelection"
           />
 
-
-          <!-- IMPORT -->
 
           <button
             type="button"
@@ -1063,8 +1274,6 @@ function resetFilters() {
           </button>
 
 
-          <!-- AJOUT -->
-
           <button
             type="button"
             class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
@@ -1077,8 +1286,6 @@ function resetFilters() {
 
       </div>
 
-
-      <!-- MESSAGE IMPORT -->
 
       <div
         v-if="importMessage"
@@ -1149,8 +1356,6 @@ function resetFilters() {
         class="grid gap-4 md:grid-cols-2 xl:grid-cols-6"
       >
 
-        <!-- RECHERCHE -->
-
         <div
           class="md:col-span-2"
         >
@@ -1170,8 +1375,6 @@ function resetFilters() {
 
         </div>
 
-
-        <!-- CLASSE -->
 
         <div>
 
@@ -1203,8 +1406,6 @@ function resetFilters() {
         </div>
 
 
-        <!-- CATÉGORIE -->
-
         <div>
 
           <label
@@ -1235,8 +1436,6 @@ function resetFilters() {
         </div>
 
 
-        <!-- SEXE -->
-
         <div>
 
           <label
@@ -1266,8 +1465,6 @@ function resetFilters() {
 
         </div>
 
-
-        <!-- PRÉSENCE -->
 
         <div>
 
@@ -1301,8 +1498,6 @@ function resetFilters() {
       </div>
 
 
-      <!-- RÉSUMÉ FILTRES -->
-
       <div
         class="mt-5 flex flex-wrap items-center justify-between gap-3"
       >
@@ -1330,6 +1525,76 @@ function resetFilters() {
 
 
     <!-- ==================================================
+         ACTIONS GROUPÉES
+    =================================================== -->
+
+    <div
+      v-if="selectedParticipants.length > 0"
+      class="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm"
+    >
+
+      <div
+        class="flex flex-wrap items-center justify-between gap-4"
+      >
+
+        <div>
+
+          <p
+            class="font-semibold text-sky-900"
+          >
+            {{ selectedParticipants.length }}
+            participant(s) sélectionné(s)
+          </p>
+
+          <button
+            type="button"
+            class="mt-1 text-sm font-semibold text-sky-600 hover:text-sky-700"
+            @click="clearSelection"
+          >
+            Annuler la sélection
+          </button>
+
+        </div>
+
+
+        <div
+          class="flex flex-wrap gap-2"
+        >
+
+          <button
+            type="button"
+            class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            @click="setSelectedPresence(true)"
+          >
+            ✓ Marquer présents
+          </button>
+
+
+          <button
+            type="button"
+            class="rounded-xl bg-slate-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+            @click="setSelectedPresence(false)"
+          >
+            Marquer absents
+          </button>
+
+
+          <button
+            type="button"
+            class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+            @click="deleteSelectedParticipants"
+          >
+            🗑️ Supprimer la sélection
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==================================================
          TABLEAU
     =================================================== -->
 
@@ -1350,6 +1615,23 @@ function resetFilters() {
           >
 
             <tr>
+
+              <!-- SÉLECTION -->
+
+              <th
+                class="w-12 px-4 py-3"
+              >
+
+                <input
+                  type="checkbox"
+                  :checked="allFilteredSelected"
+                  class="h-4 w-4 cursor-pointer rounded border-slate-300"
+                  title="Sélectionner tous les participants affichés"
+                  @change="toggleSelectAll"
+                />
+
+              </th>
+
 
               <th
                 class="px-4 py-3 font-semibold text-slate-700"
@@ -1414,13 +1696,32 @@ function resetFilters() {
             class="divide-y divide-slate-100 bg-white"
           >
 
-            <!-- PARTICIPANTS -->
-
             <tr
               v-for="participant in filteredParticipants"
               :key="participant.id"
               class="transition hover:bg-slate-50"
+              :class="
+                selectedParticipants.includes(participant.id)
+                  ? 'bg-sky-50'
+                  : ''
+              "
             >
+
+              <!-- SÉLECTION -->
+
+              <td
+                class="px-4 py-3"
+              >
+
+                <input
+                  v-model="selectedParticipants"
+                  type="checkbox"
+                  :value="participant.id"
+                  class="h-4 w-4 cursor-pointer rounded border-slate-300"
+                />
+
+              </td>
+
 
               <!-- DOSSARD -->
 
@@ -1571,7 +1872,7 @@ function resetFilters() {
             >
 
               <td
-                colspan="9"
+                colspan="10"
                 class="px-6 py-12 text-center"
               >
 
@@ -1620,8 +1921,6 @@ function resetFilters() {
         class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl"
       >
 
-        <!-- HEADER MODALE -->
-
         <div
           class="flex items-start justify-between gap-4"
         >
@@ -1660,8 +1959,6 @@ function resetFilters() {
         </div>
 
 
-        <!-- ERREUR -->
-
         <div
           v-if="formError"
           class="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
@@ -1669,8 +1966,6 @@ function resetFilters() {
           {{ formError }}
         </div>
 
-
-        <!-- FORMULAIRE -->
 
         <div
           class="mt-6 grid gap-4 md:grid-cols-2"
