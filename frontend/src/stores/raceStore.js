@@ -11,6 +11,14 @@ import {
 
 import { useRaceManagerStore } from "./raceManagerStore"
 
+// ==================================================
+// FIREBASE PARTICIPANTS
+// ==================================================
+
+import {
+  importParticipants as importParticipantsToFirebase,
+} from "../firebase/participants"
+
 
 export const useRaceStore = defineStore(
   "raceStore",
@@ -303,9 +311,30 @@ export const useRaceStore = defineStore(
       file
     ) {
 
-      const rows =
-        await importExcel(file)
+      console.log(
+        "📊 Début import du fichier Excel..."
+      )
 
+
+      // ==================================================
+      // LECTURE DU FICHIER EXCEL
+      // ==================================================
+
+      const rows =
+        await importExcel(
+          file
+        )
+
+
+      console.log(
+        "📊 Lignes Excel détectées :",
+        rows.length
+      )
+
+
+      // ==================================================
+      // CRÉATION DES PARTICIPANTS
+      // ==================================================
 
       const importedParticipants =
         rows.map(
@@ -377,17 +406,23 @@ export const useRaceStore = defineStore(
 
               categorie,
 
-              present: false,
+              present:
+                false,
 
-              arrive: false,
+              arrive:
+                false,
 
-              heureDepart: null,
+              heureDepart:
+                null,
 
-              heureArrivee: null,
+              heureArrivee:
+                null,
 
-              temps: null,
+              temps:
+                null,
 
-              position: null,
+              position:
+                null,
 
               positionCategorie:
                 null,
@@ -403,10 +438,64 @@ export const useRaceStore = defineStore(
         )
 
 
+      // ==================================================
+      // ENREGISTREMENT LOCAL DANS RACESTORE
+      // ==================================================
+
       setParticipants(
         importedParticipants
       )
 
+
+      console.log(
+        "👥 Participants enregistrés localement :",
+        importedParticipants.length
+      )
+
+
+      // ==================================================
+      // SYNCHRONISATION VERS FIREBASE
+      // ==================================================
+
+      console.log(
+        "🔥 Envoi des participants vers Firebase :",
+        importedParticipants.length
+      )
+
+
+      try {
+
+        const firebaseResult =
+          await importParticipantsToFirebase(
+            importedParticipants
+          )
+
+
+        console.log(
+          "✅ Participants synchronisés avec Firebase :",
+          firebaseResult.count
+        )
+
+      }
+
+      catch (
+        error
+      ) {
+
+        console.error(
+          "❌ Erreur synchronisation participants Firebase :",
+          error
+        )
+
+
+        throw error
+
+      }
+
+
+      // ==================================================
+      // RETOUR
+      // ==================================================
 
       return (
         importedParticipants.length
