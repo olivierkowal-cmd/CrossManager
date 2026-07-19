@@ -34,9 +34,7 @@ const app =
 if (
   app.mode !== "scanner"
 ) {
-
   app.setScanner(1)
-
 }
 
 
@@ -132,63 +130,45 @@ function beep(
       window.AudioContext ||
       window.webkitAudioContext
 
-
     if (
       !AudioContextClass
     ) {
-
       return
-
     }
-
 
     const context =
       new AudioContextClass()
 
-
     const oscillator =
       context.createOscillator()
 
-
     const gain =
       context.createGain()
-
 
     oscillator.connect(
       gain
     )
 
-
     gain.connect(
       context.destination
     )
 
-
     oscillator.frequency.value =
       frequency
-
 
     gain.gain.value =
       0.15
 
-
     oscillator.start()
 
-
     oscillator.stop(
-
       context.currentTime +
-
       duration / 1000
-
     )
-
 
     oscillator.onended =
       () => {
-
         context.close()
-
       }
 
   }
@@ -273,9 +253,7 @@ async function processScan(
   if (
     isProcessing.value
   ) {
-
     return
-
   }
 
 
@@ -308,11 +286,8 @@ async function processScan(
     const result =
       await scannerStore
         .scanParticipant(
-
           cleanCode,
-
           app.deviceName
-
         )
 
 
@@ -345,7 +320,6 @@ async function processScan(
 
 
       message.value =
-
         `${result.participant.prenom} ${result.participant.nom}`
 
 
@@ -398,11 +372,8 @@ async function processScan(
     else {
 
       showError(
-
         result.message ||
-
         "Impossible d'enregistrer le participant."
-
       )
 
       return
@@ -561,7 +532,6 @@ function clearMessageLater() {
       },
 
       2200
-
     )
 
 }
@@ -576,26 +546,20 @@ function resetScanner() {
   if (
     scannerStore.arrivals.length === 0
   ) {
-
     return
-
   }
 
 
   const confirmation =
     window.confirm(
-
       "Voulez-vous vraiment vider l'historique local du scanner ?"
-
     )
 
 
   if (
     !confirmation
   ) {
-
     return
-
   }
 
 
@@ -608,70 +572,439 @@ function resetScanner() {
 
 <template>
 
-  <section
-    class="space-y-8"
-  >
+<section class="scanner-page">
+
+  <!-- ==================================================
+       EN-TÊTE
+  =================================================== -->
+
+  <header class="scanner-header">
+
+    <div>
+
+      <p class="device-name">
+        📱 {{ app.deviceName }}
+      </p>
+
+      <h1>
+        Scanner QR
+      </h1>
+
+      <p class="desktop-only scanner-description">
+        Scanner les dossards des participants à l'arrivée
+      </p>
+
+    </div>
+
+
+    <div class="scanner-status">
+
+      <span class="status-dot"></span>
+
+      Scanner actif
+
+    </div>
+
+  </header>
+
+
+  <!-- ==================================================
+       STATISTIQUES PC UNIQUEMENT
+  =================================================== -->
+
+  <div class="desktop-only stats-grid">
+
+    <div class="stat-card">
+
+      <p>
+        Arrivées scannées
+      </p>
+
+      <strong>
+        {{ totalScans }}
+      </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+      <p>
+        Dernier dossard
+      </p>
+
+      <strong class="text-sky-600">
+
+        {{
+          scannerStore.lastArrival
+            ?.participant
+            ?.dossard ||
+          "—"
+        }}
+
+      </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+      <p>
+        Dernière position
+      </p>
+
+      <strong>
+
+        {{
+          scannerStore.lastArrival
+            ?.position ||
+          "—"
+        }}
+
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       ZONE PRINCIPALE
+  =================================================== -->
+
+  <div class="scanner-main">
+
 
     <!-- ==================================================
-         EN-TÊTE
+         CAMÉRA
     =================================================== -->
 
-    <div
-      class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
-    >
+    <div class="camera-zone">
 
-      <div>
+      <div class="desktop-only camera-title">
 
-        <p
-          class="text-sm font-semibold uppercase tracking-[0.35em] text-sky-600"
-        >
-          {{ app.deviceName }}
-        </p>
+        <h2>
+          Scanner caméra
+        </h2>
 
-
-        <h1
-          class="mt-2 text-4xl font-black text-slate-900"
-        >
-          Scanner QR
-        </h1>
-
-
-        <p
-          class="mt-2 text-slate-500"
-        >
-          Scanner les dossards des participants à l'arrivée
+        <p>
+          Présentez le QR Code du dossard devant la caméra.
         </p>
 
       </div>
 
 
+      <div class="camera-container">
+
+        <ScannerCamera
+          @scanned="onScanned"
+        />
+
+      </div>
+
+
+      <!-- INDICATION MOBILE -->
+
+      <div class="mobile-only scan-instruction">
+
+        <span class="scan-icon">
+          ⌗
+        </span>
+
+        <span>
+          Placez le QR Code dans le cadre
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <!-- ==================================================
+         DERNIÈRE ARRIVÉE PC
+    =================================================== -->
+
+    <div class="desktop-only last-arrival-zone">
+
+      <h2>
+        Dernière arrivée
+      </h2>
+
+      <p>
+        Dernier participant enregistré par ce scanner.
+      </p>
+
+      <div class="mt-4">
+
+        <LastArrivalCard
+          :arrival="scannerStore.lastArrival"
+        />
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       VALIDATION SCAN
+       OVERLAY SUR MOBILE
+  =================================================== -->
+
+  <transition name="scan">
+
+    <div
+      v-if="message"
+      :class="[
+        messageColor,
+        'scan-result'
+      ]"
+    >
+
+
+      <!-- SUCCÈS -->
+
       <div
-        class="flex items-center gap-3"
+        v-if="success"
+        class="result-content"
       >
 
-        <div
-          class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3"
-        >
+        <div class="result-icon">
+          ✅
+        </div>
 
-          <p
-            class="text-xs font-semibold uppercase tracking-wider text-emerald-600"
-          >
-            Scanner
-          </p>
+        <p class="result-label">
+          Arrivée enregistrée
+        </p>
 
-          <p
-            class="mt-1 font-bold text-emerald-800"
-          >
-            ● Actif
-          </p>
+        <h2 class="result-name">
+
+          {{
+            scannerStore.lastArrival
+              ?.participant
+              ?.prenom
+          }}
+
+          {{
+            scannerStore.lastArrival
+              ?.participant
+              ?.nom
+          }}
+
+        </h2>
+
+
+        <p class="result-bib">
+
+          Dossard
+
+          <strong>
+
+            {{
+              scannerStore.lastArrival
+                ?.participant
+                ?.dossard
+            }}
+
+          </strong>
+
+        </p>
+
+
+        <p class="result-category">
+
+          {{
+            scannerStore.lastArrival
+              ?.participant
+              ?.categorie
+          }}
+
+        </p>
+
+
+        <div class="result-details">
+
+          <div>
+
+            <span>
+              Temps
+            </span>
+
+            <strong>
+
+              {{
+                formatTime(
+                  scannerStore.lastArrival
+                    ?.elapsedTime
+                )
+              }}
+
+            </strong>
+
+          </div>
+
+
+          <div>
+
+            <span>
+              Position
+            </span>
+
+            <strong>
+
+              {{
+                scannerStore.lastArrival
+                  ?.position
+              }}
+
+            </strong>
+
+          </div>
 
         </div>
+
+      </div>
+
+
+      <!-- DOUBLON -->
+
+      <div
+        v-else-if="duplicate"
+        class="result-content"
+      >
+
+        <div class="result-icon">
+          ⚠️
+        </div>
+
+        <h2 class="result-name">
+          Déjà scanné
+        </h2>
+
+        <p class="result-message">
+          Cette arrivée a déjà été enregistrée.
+        </p>
+
+      </div>
+
+
+      <!-- ERREUR -->
+
+      <div
+        v-else
+        class="result-content"
+      >
+
+        <div class="result-icon">
+          ❌
+        </div>
+
+        <h2 class="result-name">
+          {{ message }}
+        </h2>
+
+      </div>
+
+    </div>
+
+  </transition>
+
+
+  <!-- ==================================================
+       SAISIE MANUELLE
+  =================================================== -->
+
+  <div class="manual-zone">
+
+    <div class="manual-header">
+
+      <div>
+
+        <h2>
+          Saisie manuelle
+        </h2>
+
+        <p class="desktop-only">
+          À utiliser uniquement si le QR Code ne peut pas être lu.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="manual-form">
+
+      <input
+        v-model="manualBib"
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="N° dossard"
+        @keyup.enter="submitManualBib"
+      />
+
+
+      <button
+        type="button"
+        :disabled="
+          isProcessing ||
+          !manualBib.trim()
+        "
+        @click="submitManualBib"
+      >
+
+        <span
+          v-if="isProcessing"
+        >
+          ...
+        </span>
+
+        <span
+          v-else
+        >
+          Valider
+        </span>
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       HISTORIQUE PC UNIQUEMENT
+  =================================================== -->
+
+  <div class="desktop-only history-zone">
+
+    <div class="history-header">
+
+      <div>
+
+        <h2>
+          Dernières arrivées
+        </h2>
+
+        <p>
+          Les 10 derniers participants enregistrés par ce scanner.
+        </p>
+
+      </div>
+
+
+      <div class="history-actions">
+
+        <span>
+          {{ totalScans }} scan(s)
+        </span>
 
 
         <button
           v-if="scannerStore.arrivals.length > 0"
           type="button"
-          class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
           @click="resetScanner"
         >
           Effacer l'historique
@@ -682,729 +1015,630 @@ function resetScanner() {
     </div>
 
 
-    <!-- ==================================================
-         STATISTIQUES
-    =================================================== -->
-
     <div
-      class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      v-if="recentArrivals.length === 0"
+      class="empty-history"
     >
 
-      <!-- TOTAL SCANS -->
+      🏁
 
-      <div
-        class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
-
-        <p
-          class="text-sm font-medium text-slate-500"
-        >
-          Arrivées scannées
-        </p>
-
-
-        <div
-          class="mt-2 flex items-center justify-between"
-        >
-
-          <p
-            class="text-4xl font-black text-slate-900"
-          >
-            {{ totalScans }}
-          </p>
-
-          <span
-            class="text-3xl"
-          >
-            📱
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <!-- DERNIER DOSSARD -->
-
-      <div
-        class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
-
-        <p
-          class="text-sm font-medium text-slate-500"
-        >
-          Dernier dossard
-        </p>
-
-
-        <div
-          class="mt-2 flex items-center justify-between"
-        >
-
-          <p
-            class="text-4xl font-black text-sky-600"
-          >
-
-            {{
-              scannerStore.lastArrival
-                ?.participant
-                ?.dossard ||
-              "—"
-            }}
-
-          </p>
-
-          <span
-            class="text-3xl"
-          >
-            🏷️
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <!-- DERNIÈRE POSITION -->
-
-      <div
-        class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-1"
-      >
-
-        <p
-          class="text-sm font-medium text-slate-500"
-        >
-          Dernière position
-        </p>
-
-
-        <div
-          class="mt-2 flex items-center justify-between"
-        >
-
-          <p
-            class="text-4xl font-black text-slate-900"
-          >
-
-            {{
-              scannerStore.lastArrival
-                ?.position ||
-              "—"
-            }}
-
-          </p>
-
-          <span
-            class="text-3xl"
-          >
-            🏁
-          </span>
-
-        </div>
-
-      </div>
+      <p>
+        Aucune arrivée enregistrée
+      </p>
 
     </div>
 
 
-    <!-- ==================================================
-         VALIDATION DU SCAN
-    =================================================== -->
-
-    <transition
-      name="scan"
-    >
-
-      <div
-        v-if="message"
-        :class="messageColor"
-        class="overflow-hidden rounded-3xl shadow-2xl"
-      >
-
-        <!-- ==================================================
-             SUCCÈS
-        =================================================== -->
-
-        <div
-          v-if="success"
-          class="py-10 text-center text-white"
-        >
-
-          <div
-            class="text-8xl"
-          >
-            ✅
-          </div>
-
-
-          <p
-            class="mt-4 text-lg font-semibold uppercase tracking-wider text-emerald-100"
-          >
-            Arrivée enregistrée
-          </p>
-
-
-          <h2
-            class="mt-2 text-4xl font-black md:text-5xl"
-          >
-
-            {{
-              scannerStore.lastArrival
-                ?.participant
-                ?.prenom
-            }}
-
-            {{
-              scannerStore.lastArrival
-                ?.participant
-                ?.nom
-            }}
-
-          </h2>
-
-
-          <p
-            class="mt-2 text-2xl text-emerald-100"
-          >
-
-            Dossard
-
-            {{
-              scannerStore.lastArrival
-                ?.participant
-                ?.dossard
-            }}
-
-            ·
-
-            {{
-              scannerStore.lastArrival
-                ?.participant
-                ?.categorie
-            }}
-
-          </p>
-
-
-          <div
-            class="mx-auto mt-8 max-w-md rounded-2xl bg-white/10 p-6"
-          >
-
-            <div
-              class="flex justify-between text-2xl"
-            >
-
-              <span>
-                Temps
-              </span>
-
-              <strong>
-
-                {{
-                  formatTime(
-                    scannerStore.lastArrival
-                      ?.elapsedTime
-                  )
-                }}
-
-              </strong>
-
-            </div>
-
-
-            <div
-              class="mt-4 flex justify-between text-2xl"
-            >
-
-              <span>
-                Position
-              </span>
-
-              <strong>
-
-                {{
-                  scannerStore.lastArrival
-                    ?.position
-                }}
-
-              </strong>
-
-            </div>
-
-
-            <div
-              class="mt-4 flex justify-between text-xl"
-            >
-
-              <span>
-                Scanner
-              </span>
-
-              <strong>
-
-                {{
-                  scannerStore.lastArrival
-                    ?.scanner
-                }}
-
-              </strong>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- ==================================================
-             DOUBLON
-        =================================================== -->
-
-        <div
-          v-else-if="duplicate"
-          class="py-10 text-center text-white"
-        >
-
-          <div
-            class="text-8xl"
-          >
-            ⚠️
-          </div>
-
-
-          <h2
-            class="mt-4 text-4xl font-black"
-          >
-            Participant déjà scanné
-          </h2>
-
-
-          <p
-            class="mt-3 text-xl text-orange-100"
-          >
-            Cette arrivée a déjà été enregistrée.
-          </p>
-
-        </div>
-
-
-        <!-- ==================================================
-             ERREUR
-        =================================================== -->
-
-        <div
-          v-else
-          class="py-10 text-center text-white"
-        >
-
-          <div
-            class="text-8xl"
-          >
-            ❌
-          </div>
-
-
-          <h2
-            class="mt-4 text-4xl font-black"
-          >
-            {{ message }}
-          </h2>
-
-        </div>
-
-      </div>
-
-    </transition>
-
-
-    <!-- ==================================================
-         SAISIE MANUELLE
-    =================================================== -->
-
     <div
-      class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      v-else
+      class="history-table"
     >
 
-      <div
-        class="flex flex-col gap-4 lg:flex-row lg:items-end"
-      >
+      <table>
 
-        <div
-          class="flex-1"
-        >
+        <thead>
 
-          <label
-            class="block text-sm font-semibold text-slate-700"
+          <tr>
+
+            <th>
+              Position
+            </th>
+
+            <th>
+              Dossard
+            </th>
+
+            <th>
+              Participant
+            </th>
+
+            <th>
+              Catégorie
+            </th>
+
+            <th>
+              Temps
+            </th>
+
+            <th>
+              Scanner
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            v-for="arrival in recentArrivals"
+            :key="
+              arrival.id ||
+              `${arrival.participant?.id}-${arrival.position}`
+            "
           >
-            Saisie manuelle du dossard
-          </label>
 
+            <td>
+              {{ arrival.position }}
+            </td>
 
-          <p
-            class="mt-1 text-sm text-slate-500"
-          >
-            Utilisez cette fonction si le QR Code ne peut pas être lu.
-          </p>
+            <td>
+              {{ arrival.participant?.dossard }}
+            </td>
 
+            <td>
 
-          <input
-            v-model="manualBib"
-            type="text"
-            inputmode="numeric"
-            autocomplete="off"
-            placeholder="Exemple : 0042"
-            class="mt-3 w-full rounded-xl border border-slate-300 px-4 py-4 text-2xl font-bold outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
-            @keyup.enter="submitManualBib"
-          />
+              {{ arrival.participant?.prenom }}
 
-        </div>
+              {{ arrival.participant?.nom }}
 
+            </td>
 
-        <button
-          type="button"
-          class="rounded-xl bg-sky-600 px-8 py-4 text-lg font-bold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="
-            isProcessing ||
-            !manualBib.trim()
-          "
-          @click="submitManualBib"
-        >
+            <td>
+              {{ arrival.participant?.categorie }}
+            </td>
 
-          <span
-            v-if="isProcessing"
-          >
-            Enregistrement...
-          </span>
+            <td>
+              {{ formatTime(arrival.elapsedTime) }}
+            </td>
 
-          <span
-            v-else
-          >
-            🏁 Enregistrer l'arrivée
-          </span>
+            <td>
+              {{ arrival.scanner }}
+            </td>
 
-        </button>
+          </tr>
 
-      </div>
+        </tbody>
+
+      </table>
 
     </div>
 
+  </div>
 
-    <!-- ==================================================
-         CAMÉRA + DERNIÈRE ARRIVÉE
-    =================================================== -->
-
-    <div
-      class="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]"
-    >
-
-      <div>
-
-        <div
-          class="mb-4"
-        >
-
-          <h2
-            class="text-xl font-bold text-slate-900"
-          >
-            Scanner caméra
-          </h2>
-
-          <p
-            class="mt-1 text-sm text-slate-500"
-          >
-            Présentez le QR Code du dossard devant la caméra.
-          </p>
-
-        </div>
-
-
-        <ScannerCamera
-          @scanned="onScanned"
-        />
-
-      </div>
-
-
-      <div>
-
-        <div
-          class="mb-4"
-        >
-
-          <h2
-            class="text-xl font-bold text-slate-900"
-          >
-            Dernière arrivée
-          </h2>
-
-          <p
-            class="mt-1 text-sm text-slate-500"
-          >
-            Dernier participant enregistré par ce scanner.
-          </p>
-
-        </div>
-
-
-        <LastArrivalCard
-          :arrival="scannerStore.lastArrival"
-        />
-
-      </div>
-
-    </div>
-
-
-    <!-- ==================================================
-         HISTORIQUE DES DERNIERS SCANS
-    =================================================== -->
-
-    <div
-      class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-    >
-
-      <div
-        class="border-b border-slate-200 p-6"
-      >
-
-        <div
-          class="flex items-center justify-between"
-        >
-
-          <div>
-
-            <h2
-              class="text-xl font-bold text-slate-900"
-            >
-              Dernières arrivées
-            </h2>
-
-            <p
-              class="mt-1 text-sm text-slate-500"
-            >
-              Les 10 derniers participants enregistrés par ce scanner.
-            </p>
-
-          </div>
-
-
-          <span
-            class="rounded-full bg-sky-50 px-3 py-1 text-sm font-bold text-sky-700"
-          >
-            {{ totalScans }} scan(s)
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <!-- AUCUNE ARRIVÉE -->
-
-      <div
-        v-if="recentArrivals.length === 0"
-        class="px-6 py-12 text-center"
-      >
-
-        <div
-          class="text-5xl"
-        >
-          🏁
-        </div>
-
-        <p
-          class="mt-4 font-semibold text-slate-700"
-        >
-          Aucune arrivée enregistrée
-        </p>
-
-        <p
-          class="mt-1 text-sm text-slate-500"
-        >
-          Les participants apparaîtront ici après leur scan.
-        </p>
-
-      </div>
-
-
-      <!-- TABLEAU -->
-
-      <div
-        v-else
-        class="overflow-x-auto"
-      >
-
-        <table
-          class="min-w-full divide-y divide-slate-200 text-left text-sm"
-        >
-
-          <thead
-            class="bg-slate-50"
-          >
-
-            <tr>
-
-              <th
-                class="px-5 py-3 font-semibold text-slate-700"
-              >
-                Position
-              </th>
-
-              <th
-                class="px-5 py-3 font-semibold text-slate-700"
-              >
-                Dossard
-              </th>
-
-              <th
-                class="px-5 py-3 font-semibold text-slate-700"
-              >
-                Participant
-              </th>
-
-              <th
-                class="px-5 py-3 font-semibold text-slate-700"
-              >
-                Catégorie
-              </th>
-
-              <th
-                class="px-5 py-3 font-semibold text-slate-700"
-              >
-                Temps
-              </th>
-
-              <th
-                class="px-5 py-3 font-semibold text-slate-700"
-              >
-                Scanner
-              </th>
-
-            </tr>
-
-          </thead>
-
-
-          <tbody
-            class="divide-y divide-slate-100"
-          >
-
-            <tr
-              v-for="arrival in recentArrivals"
-              :key="
-                arrival.id ||
-                `${arrival.participant?.id}-${arrival.position}`
-              "
-              class="hover:bg-slate-50"
-            >
-
-              <td
-                class="px-5 py-4"
-              >
-
-                <span
-                  class="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-slate-100 px-2 font-black text-slate-700"
-                >
-                  {{ arrival.position }}
-                </span>
-
-              </td>
-
-
-              <td
-                class="px-5 py-4"
-              >
-
-                <span
-                  class="rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-700"
-                >
-                  {{
-                    arrival.participant
-                      ?.dossard
-                  }}
-                </span>
-
-              </td>
-
-
-              <td
-                class="px-5 py-4 font-semibold text-slate-900"
-              >
-
-                {{
-                  arrival.participant
-                    ?.prenom
-                }}
-
-                {{
-                  arrival.participant
-                    ?.nom
-                }}
-
-              </td>
-
-
-              <td
-                class="px-5 py-4 text-slate-600"
-              >
-                {{
-                  arrival.participant
-                    ?.categorie
-                }}
-              </td>
-
-
-              <td
-                class="px-5 py-4 font-mono font-semibold text-slate-700"
-              >
-                {{
-                  formatTime(
-                    arrival.elapsedTime
-                  )
-                }}
-              </td>
-
-
-              <td
-                class="px-5 py-4 text-slate-600"
-              >
-                {{ arrival.scanner }}
-              </td>
-
-            </tr>
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
-  </section>
+</section>
 
 </template>
 
 
 <style scoped>
 
+/* ==================================================
+   BASE
+   ================================================== */
+
+.scanner-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.mobile-only {
+  display: none;
+}
+
+
+/* ==================================================
+   HEADER
+   ================================================== */
+
+.scanner-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.device-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0284c7;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.scanner-header h1 {
+  margin-top: 8px;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.scanner-description {
+  margin-top: 10px;
+  color: #64748b;
+}
+
+.scanner-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid #a7f3d0;
+  border-radius: 16px;
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 700;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+
+/* ==================================================
+   STATISTIQUES
+   ================================================== */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: white;
+}
+
+.stat-card p {
+  color: #64748b;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 36px;
+  color: #0f172a;
+}
+
+
+/* ==================================================
+   CAMÉRA
+   ================================================== */
+
+.scanner-main {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 32px;
+}
+
+.camera-title h2,
+.last-arrival-zone h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.camera-title p,
+.last-arrival-zone > p {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.camera-container {
+  margin-top: 16px;
+}
+
+
+/* ==================================================
+   RÉSULTAT DU SCAN
+   ================================================== */
+
+.scan-result {
+  border-radius: 24px;
+  color: white;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.result-content {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.result-icon {
+  font-size: 72px;
+}
+
+.result-label {
+  margin-top: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.result-name {
+  margin-top: 10px;
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.result-bib,
+.result-category,
+.result-message {
+  margin-top: 10px;
+  font-size: 20px;
+}
+
+.result-details {
+  display: flex;
+  justify-content: space-around;
+  max-width: 450px;
+  margin: 28px auto 0;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.15);
+}
+
+.result-details div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.result-details strong {
+  font-size: 26px;
+}
+
+
+/* ==================================================
+   SAISIE MANUELLE
+   ================================================== */
+
+.manual-zone {
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  background: white;
+}
+
+.manual-zone h2 {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.manual-zone p {
+  margin-top: 4px;
+  color: #64748b;
+}
+
+.manual-form {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.manual-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  outline: none;
+}
+
+.manual-form input:focus {
+  border-color: #0ea5e9;
+}
+
+.manual-form button {
+  padding: 14px 28px;
+  border-radius: 12px;
+  background: #0284c7;
+  color: white;
+  font-weight: 800;
+}
+
+.manual-form button:disabled {
+  opacity: 0.5;
+}
+
+
+/* ==================================================
+   HISTORIQUE
+   ================================================== */
+
+.history-zone {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  background: white;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.history-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.history-header p {
+  color: #64748b;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-actions button {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.empty-history {
+  padding: 50px;
+  text-align: center;
+  font-size: 48px;
+}
+
+.empty-history p {
+  margin-top: 12px;
+  font-size: 16px;
+}
+
+.history-table {
+  overflow-x: auto;
+}
+
+.history-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  padding: 14px 20px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.history-table th {
+  background: #f8fafc;
+}
+
+
+/* ==================================================
+   ANIMATION
+   ================================================== */
+
 .scan-enter-active,
 .scan-leave-active {
-
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.scan-enter-from,
+.scan-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+
+/* ==================================================
+   VERSION MOBILE
+   ================================================== */
+
+@media (max-width: 768px) {
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex;
+  }
+
+  .scanner-page {
+    gap: 12px;
+    width: 100%;
+    min-height: calc(100dvh - 20px);
+  }
+
+
+  /* HEADER MOBILE */
+
+  .scanner-header {
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .device-name {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .scanner-header h1 {
+    margin-top: 3px;
+    font-size: 22px;
+  }
+
+  .scanner-status {
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+
+  /* CAMÉRA MOBILE */
+
+  .scanner-main {
+    display: block;
+  }
+
+  .camera-container {
+    margin-top: 0;
+    width: 100%;
+  }
+
+  .scan-instruction {
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .scan-icon {
+    font-size: 20px;
+  }
+
+
+  /* SAISIE MANUELLE MOBILE */
+
+  .manual-zone {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .manual-zone h2 {
+    font-size: 14px;
+  }
+
+  .manual-form {
+    margin-top: 8px;
+    gap: 8px;
+  }
+
+  .manual-form input {
+    padding: 12px;
+    font-size: 18px;
+  }
+
+  .manual-form button {
+    padding: 12px 18px;
+  }
+
+
+  /* RÉSULTAT PLEIN ÉCRAN MOBILE */
+
+  .scan-result {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 0;
+  }
+
+  .result-content {
+    width: 100%;
+    padding: 30px 20px;
+  }
+
+  .result-icon {
+    font-size: 90px;
+  }
+
+  .result-label {
+    margin-top: 20px;
+    font-size: 15px;
+  }
+
+  .result-name {
+    margin-top: 14px;
+    font-size: clamp(32px, 10vw, 52px);
+    line-height: 1.05;
+  }
+
+  .result-bib {
+    margin-top: 20px;
+    font-size: 24px;
+  }
+
+  .result-category {
+    font-size: 20px;
+  }
+
+  .result-message {
+    font-size: 20px;
+  }
+
+  .result-details {
+    margin-top: 28px;
+    padding: 18px;
+  }
+
+  .result-details span {
+    font-size: 14px;
+  }
+
+  .result-details strong {
+    font-size: 28px;
+  }
 
 }
 
 
-.scan-enter-from,
-.scan-leave-to {
+/* ==================================================
+   PETITS TÉLÉPHONES
+   ================================================== */
 
-  opacity: 0;
+@media (max-width: 400px) {
 
-  transform:
-    scale(0.92);
+  .scanner-header h1 {
+    font-size: 19px;
+  }
+
+  .scanner-status {
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+
+  .manual-form button {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 
 }
 

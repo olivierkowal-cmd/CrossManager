@@ -131,11 +131,39 @@ export const useFirebaseStore =
 
 
           // ==================================================
-          // CHARGEMENT INITIAL DES PARTICIPANTS
+          // CHARGEMENT DES PARTICIPANTS FIREBASE
           // ==================================================
+
+          console.log(
+            "🔵 Début chargement participants Firebase"
+          )
+
 
           participants.value =
             await loadParticipants()
+
+
+          console.log(
+            "🟢 Participants reçus depuis Firebase :",
+            participants.value.length,
+            participants.value
+          )
+
+
+          // ==================================================
+          // SYNCHRONISER LES PARTICIPANTS
+          // AVEC RACESTORE
+          // ==================================================
+
+          raceStore.setParticipants(
+            participants.value
+          )
+
+
+          console.log(
+            "👥 Participants présents dans RaceStore :",
+            raceStore.participants.length
+          )
 
 
           // ==================================================
@@ -146,6 +174,15 @@ export const useFirebaseStore =
             await loadRaces()
 
 
+          console.log(
+            "🏃 Courses Firebase chargées :",
+            races.value.length
+          )
+
+
+          // Appliquer les courses Firebase
+          // dans RaceManager
+
           raceManager
             .applyFirebaseRaces(
               races.value
@@ -153,7 +190,8 @@ export const useFirebaseStore =
 
 
           // ==================================================
-          // ÉCOUTE DES ARRIVÉES DE LA SESSION ACTIVE
+          // ÉCOUTE DES ARRIVÉES
+          // DE LA SESSION ACTIVE
           // ==================================================
 
           unsubscribeArrivals =
@@ -163,19 +201,14 @@ export const useFirebaseStore =
 
               data => {
 
-                // ------------------------------------------
-                // Stocker uniquement les arrivées
-                // de la session active
-                // ------------------------------------------
+                // Stocker les arrivées Firebase
 
                 arrivals.value =
                   data
 
 
-                // ------------------------------------------
-                // Reconstruire les classements
-                // dans RaceManager
-                // ------------------------------------------
+                // Reconstruire les résultats
+                // officiels dans RaceManager
 
                 raceManager
                   .applyFirebaseArrivals(
@@ -201,11 +234,17 @@ export const useFirebaseStore =
 
           unsubscribeRaces =
             listenRaces(
+
               data => {
+
+                // Stocker les courses Firebase
 
                 races.value =
                   data
 
+
+                // Appliquer les courses
+                // dans RaceManager
 
                 raceManager
                   .applyFirebaseRaces(
@@ -219,6 +258,7 @@ export const useFirebaseStore =
                 )
 
               }
+
             )
 
 
@@ -228,6 +268,7 @@ export const useFirebaseStore =
 
           unsubscribeScanners =
             listenScanners(
+
               data => {
 
                 scanners.value =
@@ -240,6 +281,7 @@ export const useFirebaseStore =
                 )
 
               }
+
             )
 
 
@@ -257,6 +299,7 @@ export const useFirebaseStore =
 
         }
 
+
         catch (
           err
         ) {
@@ -271,9 +314,13 @@ export const useFirebaseStore =
             err
 
 
+          // Nettoyer les listeners
+          // éventuellement déjà ouverts
+
           disconnect()
 
         }
+
 
         finally {
 
@@ -291,11 +338,16 @@ export const useFirebaseStore =
 
       function disconnect() {
 
+        // ==================================================
+        // ARRIVÉES
+        // ==================================================
+
         if (
           unsubscribeArrivals
         ) {
 
           unsubscribeArrivals()
+
 
           unsubscribeArrivals =
             null
@@ -303,11 +355,16 @@ export const useFirebaseStore =
         }
 
 
+        // ==================================================
+        // COURSES
+        // ==================================================
+
         if (
           unsubscribeRaces
         ) {
 
           unsubscribeRaces()
+
 
           unsubscribeRaces =
             null
@@ -315,11 +372,16 @@ export const useFirebaseStore =
         }
 
 
+        // ==================================================
+        // SCANNERS
+        // ==================================================
+
         if (
           unsubscribeScanners
         ) {
 
           unsubscribeScanners()
+
 
           unsubscribeScanners =
             null
@@ -369,10 +431,8 @@ export const useFirebaseStore =
 
         try {
 
-          // ------------------------------------------
-          // Ajouter automatiquement la session
-          // si elle n'est pas déjà présente
-          // ------------------------------------------
+          // Ajouter automatiquement
+          // la session active
 
           const arrivalWithSession = {
 
@@ -395,6 +455,7 @@ export const useFirebaseStore =
           return result
 
         }
+
 
         catch (
           err
@@ -466,6 +527,7 @@ export const useFirebaseStore =
           }
 
         }
+
 
         catch (
           err
