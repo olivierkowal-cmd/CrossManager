@@ -130,9 +130,9 @@ export const useScannerStore = defineStore(
       scanner = "Scanner 1"
     ) {
 
-      // ----------------------------------------------
+      // ==================================================
       // 1. TROUVER LE PARTICIPANT
-      // ----------------------------------------------
+      // ==================================================
 
       const participant =
         findParticipant(
@@ -156,9 +156,9 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
+      // ==================================================
       // 2. TROUVER LA COURSE
-      // ----------------------------------------------
+      // ==================================================
 
       const race =
         raceManager.getRace(
@@ -182,9 +182,9 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
+      // ==================================================
       // 3. VÉRIFIER QUE LA COURSE EST DÉMARRÉE
-      // ----------------------------------------------
+      // ==================================================
 
       if (
         race.status !==
@@ -195,6 +195,8 @@ export const useScannerStore = defineStore(
 
           success: false,
 
+          participant,
+
           message:
             "La course n'est pas démarrée",
 
@@ -203,46 +205,23 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
-      // 4. VÉRIFICATION DOUBLON LOCAL
-      // ----------------------------------------------
-
-      const localDuplicate =
-        arrivals.value.find(
-          arrival =>
-
-            arrival.participant?.id ===
-              participant.id
-
-        )
-
-
-      if (
-        localDuplicate
-      ) {
-
-        return {
-
-          success: false,
-
-          duplicate: true,
-
-          participant,
-
-          arrival:
-            localDuplicate,
-
-          message:
-            "Participant déjà scanné",
-
-        }
-
-      }
+      // ==================================================
+      // IMPORTANT
+      //
+      // PAS DE VÉRIFICATION DE DOUBLON LOCAL
+      //
+      // Firebase est la source officielle.
+      //
+      // Cela permet :
+      // - plusieurs téléphones scanners
+      // - la réinitialisation des arrivées
+      // - la détection globale des doublons
+      // ==================================================
 
 
-      // ----------------------------------------------
-      // 5. CALCULER L'HEURE D'ARRIVÉE
-      // ----------------------------------------------
+      // ==================================================
+      // 4. CALCULER L'HEURE D'ARRIVÉE
+      // ==================================================
 
       const arrivalTime =
         Date.now()
@@ -255,18 +234,18 @@ export const useScannerStore = defineStore(
         race.startTime
 
 
-      // ----------------------------------------------
-      // 6. RÉCUPÉRER LA SESSION ACTIVE
-      // ----------------------------------------------
+      // ==================================================
+      // 5. RÉCUPÉRER LA SESSION ACTIVE
+      // ==================================================
 
       const sessionId =
         raceStore.settings.sessionId ||
         "cross-2026"
 
 
-      // ----------------------------------------------
-      // 7. PRÉPARER L'ARRIVÉE FIREBASE
-      // ----------------------------------------------
+      // ==================================================
+      // 6. PRÉPARER L'ARRIVÉE FIREBASE
+      // ==================================================
 
       const firebaseArrival = {
 
@@ -288,6 +267,14 @@ export const useScannerStore = defineStore(
           participant.prenom ??
           "",
 
+        classe:
+          participant.classe ??
+          "",
+
+        sexe:
+          participant.sexe ??
+          "",
+
         categorie:
           participant.categorie ??
           "",
@@ -304,14 +291,20 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
-      // 8. FIREBASE VALIDE L'ARRIVÉE
-      // ----------------------------------------------
+      // ==================================================
+      // 7. ENVOYER L'ARRIVÉE À FIREBASE
+      // ==================================================
 
       let firebaseResult
 
 
       try {
+
+        console.log(
+          "📤 Envoi arrivée vers Firebase :",
+          firebaseArrival
+        )
+
 
         firebaseResult =
           await addArrival(
@@ -325,7 +318,7 @@ export const useScannerStore = defineStore(
       ) {
 
         console.error(
-          "Erreur Firebase pendant le scan :",
+          "❌ Erreur Firebase pendant le scan :",
           error
         )
 
@@ -346,9 +339,9 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
-      // 9. DOUBLON DÉTECTÉ PAR FIREBASE
-      // ----------------------------------------------
+      // ==================================================
+      // 8. DOUBLON DÉTECTÉ PAR FIREBASE
+      // ==================================================
 
       if (
         firebaseResult?.duplicate
@@ -380,9 +373,9 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
-      // 10. FIREBASE A ACCEPTÉ L'ARRIVÉE
-      // ----------------------------------------------
+      // ==================================================
+      // 9. VÉRIFIER QUE FIREBASE A ACCEPTÉ
+      // ==================================================
 
       if (
         !firebaseResult?.success
@@ -402,9 +395,15 @@ export const useScannerStore = defineStore(
       }
 
 
-      // ----------------------------------------------
-      // 11. ENREGISTREMENT DANS RACEMANAGER
-      // ----------------------------------------------
+      console.log(
+        "🔥 Arrivée créée dans Firebase :",
+        firebaseResult.id
+      )
+
+
+      // ==================================================
+      // 10. ENREGISTREMENT LOCAL DANS RACEMANAGER
+      // ==================================================
 
       const result =
         raceManager.registerArrival(
@@ -417,20 +416,40 @@ export const useScannerStore = defineStore(
         !result.success
       ) {
 
-        console.error(
-          "L'arrivée Firebase a été créée mais RaceManager a refusé l'arrivée :",
+        console.warn(
+          "⚠️ Firebase a accepté l'arrivée mais RaceManager local l'a refusée :",
           result
         )
 
 
-        return result
+        // L'arrivée Firebase reste officielle.
+        // On ne retourne pas une erreur de scan
+        // puisque Firebase a bien enregistré l'arrivée.
+
+        return {
+
+          success: true,
+
+          participant,
+
+          arrival: {
+            participant,
+            scanner,
+            arrivalTime,
+            elapsedTime,
+          },
+
+          firebaseId:
+            firebaseResult.id,
+
+        }
 
       }
 
 
-      // ----------------------------------------------
-      // 12. AJOUT LOCAL
-      // ----------------------------------------------
+      // ==================================================
+      // 11. AJOUT DANS L'HISTORIQUE LOCAL DU TÉLÉPHONE
+      // ==================================================
 
       arrivals.value.push(
         result.arrival
@@ -441,18 +460,26 @@ export const useScannerStore = defineStore(
         result.arrival
 
 
+      // ==================================================
+      // 12. LOG
+      // ==================================================
+
       console.log(
-        "🔥 Arrivée validée par Firebase :",
+        "✅ Arrivée validée :",
         participant.prenom,
         participant.nom,
-        "Session :",
-        sessionId
+        "| Course :",
+        participant.categorie,
+        "| Session :",
+        sessionId,
+        "| Firebase ID :",
+        firebaseResult.id
       )
 
 
-      // ----------------------------------------------
-      // 13. RETOUR DU RÉSULTAT
-      // ----------------------------------------------
+      // ==================================================
+      // 13. RETOUR
+      // ==================================================
 
       return {
 

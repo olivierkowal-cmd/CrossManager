@@ -4,7 +4,6 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy,
   serverTimestamp,
   deleteDoc,
   runTransaction,
@@ -85,9 +84,6 @@ function createArrivalId(
   }
 
 
-  // Exemple :
-  // cross-2026_1F_125
-
   return (
     `${sessionId}_${categorie}_${participantId}`
   )
@@ -131,15 +127,16 @@ export async function addArrival(
 
     const result =
       await runTransaction(
+
         db,
 
         async (
           transaction
         ) => {
 
-          // ------------------------------------------
-          // Vérifier si l'arrivée existe déjà
-          // ------------------------------------------
+          // ==================================================
+          // VÉRIFIER SI L'ARRIVÉE EXISTE DÉJÀ
+          // ==================================================
 
           const snapshot =
             await transaction.get(
@@ -168,12 +165,14 @@ export async function addArrival(
           }
 
 
-          // ------------------------------------------
-          // Créer l'arrivée
-          // ------------------------------------------
+          // ==================================================
+          // CRÉER L'ARRIVÉE
+          // ==================================================
 
           transaction.set(
+
             arrivalRef,
+
             {
 
               ...arrival,
@@ -182,6 +181,7 @@ export async function addArrival(
                 serverTimestamp(),
 
             }
+
           )
 
 
@@ -197,6 +197,7 @@ export async function addArrival(
           }
 
         }
+
       )
 
 
@@ -209,7 +210,7 @@ export async function addArrival(
   ) {
 
     console.error(
-      "Erreur ajout arrivée Firebase :",
+      "❌ Erreur ajout arrivée Firebase :",
       error
     )
 
@@ -222,7 +223,66 @@ export async function addArrival(
 
 
 // ==================================================
-// ÉCOUTER LES ARRIVÉES D'UNE SESSION EN TEMPS RÉEL
+// CONVERTIR CREATEDAT EN MILLISECONDES
+// ==================================================
+
+function getCreatedAtTime(
+  arrival
+) {
+
+  const createdAt =
+    arrival.createdAt
+
+
+  // Timestamp Firestore
+
+  if (
+    createdAt &&
+    typeof createdAt.toMillis ===
+      "function"
+  ) {
+
+    return createdAt.toMillis()
+
+  }
+
+
+  // Objet Timestamp sérialisé
+
+  if (
+    createdAt?.seconds
+  ) {
+
+    return (
+      createdAt.seconds *
+      1000
+    )
+
+  }
+
+
+  // Utiliser arrivalTime
+  // si createdAt n'est pas encore disponible
+
+  if (
+    arrival.arrivalTime
+  ) {
+
+    return Number(
+      arrival.arrivalTime
+    )
+
+  }
+
+
+  return 0
+
+}
+
+
+// ==================================================
+// ÉCOUTER LES ARRIVÉES D'UNE SESSION
+// EN TEMPS RÉEL
 // ==================================================
 
 export function listenArrivals(
@@ -235,7 +295,7 @@ export function listenArrivals(
   ) {
 
     console.error(
-      "Impossible d'écouter les arrivées : sessionId manquant"
+      "❌ Impossible d'écouter les arrivées : sessionId manquant"
     )
 
 
@@ -243,6 +303,23 @@ export function listenArrivals(
 
   }
 
+
+  console.log(
+    "👂 Écoute des arrivées Firebase pour la session :",
+    sessionId
+  )
+
+
+  // ==================================================
+  // IMPORTANT
+  //
+  // On utilise uniquement WHERE.
+  //
+  // On ne met PAS orderBy("createdAt")
+  // afin d'éviter l'index composite Firestore.
+  //
+  // Le tri est effectué ensuite en JavaScript.
+  // ==================================================
 
   const q =
     query(
@@ -253,11 +330,6 @@ export function listenArrivals(
         "sessionId",
         "==",
         sessionId
-      ),
-
-      orderBy(
-        "createdAt",
-        "asc"
       )
 
     )
@@ -268,6 +340,10 @@ export function listenArrivals(
     q,
 
     snapshot => {
+
+      // ==================================================
+      // CONVERTIR LES DOCUMENTS FIREBASE
+      // ==================================================
 
       const arrivals =
         snapshot.docs.map(
@@ -282,16 +358,43 @@ export function listenArrivals(
         )
 
 
+      // ==================================================
+      // TRIER LES ARRIVÉES
+      // ==================================================
+
+      arrivals.sort(
+        (a, b) => {
+
+          return (
+            getCreatedAtTime(a) -
+            getCreatedAtTime(b)
+          )
+
+        }
+      )
+
+
+      console.log(
+        "🏁 Arrivées reçues depuis Firebase :",
+        arrivals.length
+      )
+
+
+      // ==================================================
+      // ENVOYER VERS FIREBASESTORE
+      // ==================================================
+
       callback(
         arrivals
       )
 
     },
 
+
     error => {
 
       console.error(
-        "Erreur écoute arrivées Firebase :",
+        "❌ Erreur écoute arrivées Firebase :",
         error
       )
 
