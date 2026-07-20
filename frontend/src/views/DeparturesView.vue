@@ -15,7 +15,7 @@ const raceStore =
 
 
 // ==================================================
-// LISTE DES COURSES
+// COURSES
 // ==================================================
 
 const races =
@@ -72,9 +72,15 @@ async function start(
 // RÉINITIALISER UNE COURSE
 // ==================================================
 
-async function reset(
+async function resetRace(
   categorie
 ) {
+
+  console.log(
+    "🔄 Événement reset-race reçu dans DeparturesView :",
+    categorie
+  )
+
 
   const race =
     raceManager.getRace(
@@ -86,18 +92,23 @@ async function reset(
     !race
   ) {
 
+    console.error(
+      "❌ Course introuvable :",
+      categorie
+    )
+
     return
 
   }
 
 
   // ==================================================
-  // DEMANDER CONFIRMATION
+  // CONFIRMATION
   // ==================================================
 
   const confirmed =
     window.confirm(
-      `Voulez-vous vraiment réinitialiser la course ${race.label} ?\n\nToutes les arrivées et tous les résultats de cette course seront supprimés.`
+      `Voulez-vous vraiment réinitialiser la course ${race.label} ?\n\nLes arrivées et les résultats de cette course seront supprimés.`
     )
 
 
@@ -111,48 +122,73 @@ async function reset(
 
 
   // ==================================================
-  // SESSION ACTIVE
+  // SESSION
   // ==================================================
 
   const sessionId =
-    raceStore.settings.sessionId ||
+    raceStore.settings?.sessionId ||
     "cross-2026"
 
 
-  // ==================================================
-  // RÉINITIALISATION
-  // ==================================================
-
-  const result =
-    await raceManager.resetRace(
-      categorie,
-      sessionId
-    )
+  console.log(
+    "🔄 Réinitialisation en cours :",
+    categorie,
+    "| Session :",
+    sessionId
+  )
 
 
-  if (
-    result.success
-  ) {
+  try {
+
+    // ==================================================
+    // APPEL RACEMANAGER
+    // ==================================================
+
+    const result =
+      await raceManager.resetRace(
+        categorie,
+        sessionId
+      )
+
 
     console.log(
-      "✅ Course réinitialisée :",
-      categorie,
-      "| Arrivées supprimées :",
-      result.deletedArrivals
-    )
-
-  }
-
-  else {
-
-    console.error(
-      "❌ Impossible de réinitialiser la course :",
+      "🔄 Résultat réinitialisation :",
       result
     )
 
 
+    if (
+      !result?.success
+    ) {
+
+      alert(
+        result?.message ||
+        "Impossible de réinitialiser la course."
+      )
+
+      return
+
+    }
+
+
+    console.log(
+      "✅ Course réinitialisée avec succès :",
+      categorie
+    )
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "❌ Erreur pendant la réinitialisation :",
+      error
+    )
+
+
     alert(
-      "Une erreur est survenue pendant la réinitialisation de la course."
+      "Une erreur est survenue pendant la réinitialisation."
     )
 
   }
@@ -168,18 +204,16 @@ async function reset(
   <div>
 
     <p
-      class="uppercase tracking-[0.35em] text-sky-600 text-sm font-semibold"
+      class="text-sm font-semibold uppercase tracking-[0.35em] text-sky-600"
     >
       CrossManager
     </p>
-
 
     <h1
       class="mt-2 text-3xl font-bold"
     >
       Gestion des départs
     </h1>
-
 
     <p
       class="mt-2 text-slate-500"
@@ -204,7 +238,7 @@ async function reset(
 
       @start="start"
 
-      @reset="reset"
+      @reset-race="resetRace"
 
     />
 
