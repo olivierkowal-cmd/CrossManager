@@ -6,6 +6,8 @@ import {
   where,
   serverTimestamp,
   deleteDoc,
+  getDocs,
+  writeBatch,
   runTransaction,
 } from "firebase/firestore"
 
@@ -134,15 +136,15 @@ export async function addArrival(
           transaction
         ) => {
 
-          // ==================================================
-          // VÉRIFIER SI L'ARRIVÉE EXISTE DÉJÀ
-          // ==================================================
-
           const snapshot =
             await transaction.get(
               arrivalRef
             )
 
+
+          // ==================================================
+          // DOUBLON FIREBASE
+          // ==================================================
 
           if (
             snapshot.exists()
@@ -166,7 +168,7 @@ export async function addArrival(
 
 
           // ==================================================
-          // CRÉER L'ARRIVÉE
+          // CRÉER ARRIVÉE
           // ==================================================
 
           transaction.set(
@@ -234,8 +236,6 @@ function getCreatedAtTime(
     arrival.createdAt
 
 
-  // Timestamp Firestore
-
   if (
     createdAt &&
     typeof createdAt.toMillis ===
@@ -246,8 +246,6 @@ function getCreatedAtTime(
 
   }
 
-
-  // Objet Timestamp sérialisé
 
   if (
     createdAt?.seconds
@@ -260,9 +258,6 @@ function getCreatedAtTime(
 
   }
 
-
-  // Utiliser arrivalTime
-  // si createdAt n'est pas encore disponible
 
   if (
     arrival.arrivalTime
@@ -282,7 +277,6 @@ function getCreatedAtTime(
 
 // ==================================================
 // ÉCOUTER LES ARRIVÉES D'UNE SESSION
-// EN TEMPS RÉEL
 // ==================================================
 
 export function listenArrivals(
@@ -310,16 +304,9 @@ export function listenArrivals(
   )
 
 
-  // ==================================================
-  // IMPORTANT
-  //
-  // On utilise uniquement WHERE.
-  //
-  // On ne met PAS orderBy("createdAt")
-  // afin d'éviter l'index composite Firestore.
-  //
-  // Le tri est effectué ensuite en JavaScript.
-  // ==================================================
+  // Pas de orderBy ici.
+  // Le tri est effectué en JavaScript
+  // pour éviter un index composite Firestore.
 
   const q =
     query(
@@ -341,10 +328,6 @@ export function listenArrivals(
 
     snapshot => {
 
-      // ==================================================
-      // CONVERTIR LES DOCUMENTS FIREBASE
-      // ==================================================
-
       const arrivals =
         snapshot.docs.map(
           document => ({
@@ -358,19 +341,13 @@ export function listenArrivals(
         )
 
 
-      // ==================================================
-      // TRIER LES ARRIVÉES
-      // ==================================================
-
       arrivals.sort(
-        (a, b) => {
+        (a, b) =>
 
-          return (
-            getCreatedAtTime(a) -
-            getCreatedAtTime(b)
-          )
+          getCreatedAtTime(a) -
 
-        }
+          getCreatedAtTime(b)
+
       )
 
 
@@ -379,10 +356,6 @@ export function listenArrivals(
         arrivals.length
       )
 
-
-      // ==================================================
-      // ENVOYER VERS FIREBASESTORE
-      // ==================================================
 
       callback(
         arrivals
@@ -422,5 +395,183 @@ export async function deleteArrival(
     )
 
   )
+
+}
+
+
+// ==================================================
+// SUPPRIMER LES ARRIVÉES D'UNE COURSE
+// ==================================================
+
+export async function deleteArrivalsByRace(
+  sessionId,
+  categorie
+) {
+
+  if (
+    !sessionId ||
+    !categorie
+  ) {
+
+    return {
+
+      success: false,
+
+      count: 0,
+
+      message:
+        "Session ou catégorie manquante",
+
+    }
+
+  }
+
+
+  console.log(
+    "🗑️ Suppression des arrivées :",
+    sessionId,
+    categorie
+  )
+
+
+  // ==================================================
+  // RECHERCHE
+  //
+  // On filtre uniquement sur sessionId.
+  // Puis on filtre la catégorie en JavaScript.
+  //
+  // Cela évite de nécessiter un index composite
+  // Firestore pour sessionId + categorie.
+  // ==================================================
+
+  const q =
+    query(
+
+      arrivalsCollection,
+
+      where(
+        "sessionId",
+        "==",
+        sessionId
+      )
+
+    )
+
+
+  const snapshot =
+    await getDocs(
+      q
+    )
+
+
+  const documentsToDelete =
+    snapshot.docs.filter(
+      document =>
+
+        document.data()
+          ?.categorie ===
+        categorie
+
+    )
+
+
+  if (
+    documentsToDelete.length ===
+    0
+  ) {
+
+    console.log(
+      "ℹ️ Aucune arrivée à supprimer pour :",
+      categorie
+    )
+
+
+    return {
+
+      success: true,
+
+      count: 0,
+
+    }
+
+  }
+
+
+  // ==================================================
+  // SUPPRESSION PAR LOTS
+  // ==================================================
+
+  const batchSize =
+    450
+
+
+  let deletedCount =
+    0
+
+
+  for (
+
+    let index = 0;
+
+    index <
+      documentsToDelete.length;
+
+    index += batchSize
+
+  ) {
+
+    const batch =
+      writeBatch(
+        db
+      )
+
+
+    const chunk =
+      documentsToDelete.slice(
+
+        index,
+
+        index +
+          batchSize
+
+      )
+
+
+    chunk.forEach(
+      document => {
+
+        batch.delete(
+          document.ref
+        )
+
+      }
+    )
+
+
+    await batch.commit()
+
+
+    deletedCount +=
+      chunk.length
+
+  }
+
+
+  console.log(
+    "✅ Arrivées supprimées pour",
+    categorie,
+    ":",
+    deletedCount
+  )
+
+
+  return {
+
+    success: true,
+
+    count:
+      deletedCount,
+
+  }
 
 }
