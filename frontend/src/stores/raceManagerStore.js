@@ -22,34 +22,24 @@ export const useRaceManagerStore = defineStore(
     const races = ref(
       RACES.map((race) => ({
 
-        id:
-          race.id,
+        id: race.id,
 
-        categorie:
-          race.categorie,
+        categorie: race.categorie,
 
-        label:
-          race.label,
+        label: race.label,
 
         // waiting | countdown | running | finished
+        status: "waiting",
 
-        status:
-          "waiting",
+        startTime: null,
 
-        startTime:
-          null,
+        finishTime: null,
 
-        finishTime:
-          null,
+        participants: 0,
 
-        participants:
-          0,
+        arrivals: 0,
 
-        arrivals:
-          0,
-
-        results:
-          [],
+        results: [],
 
       }))
     )
@@ -195,7 +185,7 @@ export const useRaceManagerStore = defineStore(
       ) {
 
         console.error(
-          "Erreur synchronisation course Firebase :",
+          "❌ Erreur synchronisation course Firebase :",
           error
         )
 
@@ -369,6 +359,23 @@ export const useRaceManagerStore = defineStore(
       }
 
 
+      if (
+        race.status ===
+        "finished"
+      ) {
+
+        return {
+
+          success:
+            true,
+
+          race,
+
+        }
+
+      }
+
+
       race.status =
         "finished"
 
@@ -379,6 +386,12 @@ export const useRaceManagerStore = defineStore(
 
       await syncRaceToFirebase(
         race
+      )
+
+
+      console.log(
+        "🏁 Course terminée :",
+        categorie
       )
 
 
@@ -436,19 +449,29 @@ export const useRaceManagerStore = defineStore(
 
       try {
 
-        // ==================================================
-        // 1. SUPPRIMER LES ARRIVÉES FIREBASE
-        // DE CETTE COURSE UNIQUEMENT
-        // ==================================================
-
         const deleteResult =
           await deleteArrivalsByRace(
-
             sessionId,
-
             categorie
-
           )
+
+
+        if (
+          !deleteResult?.success
+        ) {
+
+          return {
+
+            success:
+              false,
+
+            message:
+              deleteResult?.message ||
+              "Impossible de supprimer les arrivées",
+
+          }
+
+        }
 
 
         console.log(
@@ -456,10 +479,6 @@ export const useRaceManagerStore = defineStore(
           deleteResult.count
         )
 
-
-        // ==================================================
-        // 2. RÉINITIALISER LA COURSE LOCALE
-        // ==================================================
 
         race.status =
           "waiting"
@@ -473,14 +492,6 @@ export const useRaceManagerStore = defineStore(
           null
 
 
-        // IMPORTANT :
-        //
-        // On conserve race.participants.
-        //
-        // Le nombre de participants inscrits
-        // à la course ne doit pas être remis à zéro.
-
-
         race.arrivals =
           0
 
@@ -488,10 +499,6 @@ export const useRaceManagerStore = defineStore(
         race.results =
           []
 
-
-        // ==================================================
-        // 3. SYNCHRONISER LA COURSE AVEC FIREBASE
-        // ==================================================
 
         const firebaseResult =
           await syncRaceToFirebase(
@@ -547,9 +554,7 @@ export const useRaceManagerStore = defineStore(
       }
 
     }
-
-
-    // ==================================================
+        // ==================================================
     // RÉINITIALISER TOUTES LES COURSES
     // ==================================================
 
@@ -572,10 +577,6 @@ export const useRaceManagerStore = defineStore(
 
           race.finishTime =
             null
-
-
-          // On conserve également le nombre
-          // de participants ici.
 
 
           race.arrivals =
@@ -696,13 +697,6 @@ export const useRaceManagerStore = defineStore(
       // ==================================================
       // VÉRIFICATION DOUBLON LOCAL
       // ==================================================
-      //
-      // Cette vérification protège uniquement
-      // RaceManager local.
-      //
-      // La vérification officielle entre plusieurs
-      // téléphones reste gérée par Firebase.
-      // ==================================================
 
       const existingArrival =
         race.results.find(
@@ -788,7 +782,7 @@ export const useRaceManagerStore = defineStore(
 
 
       // ==================================================
-      // FIN AUTOMATIQUE
+      // FIN AUTOMATIQUE LOCALE
       // ==================================================
 
       if (
@@ -800,6 +794,12 @@ export const useRaceManagerStore = defineStore(
           race.participants
 
       ) {
+
+        console.log(
+          "🏁 Tous les participants sont arrivés localement :",
+          race.categorie
+        )
+
 
         finishRace(
           race.categorie
@@ -855,8 +855,12 @@ export const useRaceManagerStore = defineStore(
 
 
       if (
+
         race.status ===
-        "finished"
+          "finished" &&
+
+        race.finishTime
+
       ) {
 
         return (
@@ -957,11 +961,6 @@ export const useRaceManagerStore = defineStore(
 
       }
 
-
-      // Le nombre d'arrivées et les résultats
-      // sont recalculés depuis Firestore
-      // avec applyFirebaseArrivals().
-
     }
 
 
@@ -1026,6 +1025,7 @@ export const useRaceManagerStore = defineStore(
           race.results =
             []
 
+
           race.arrivals =
             0
 
@@ -1034,7 +1034,7 @@ export const useRaceManagerStore = defineStore(
 
 
       // ==================================================
-      // REGROUPER PAR CATÉGORIE
+      // REGROUPER LES ARRIVÉES PAR CATÉGORIE
       // ==================================================
 
       const grouped =
@@ -1080,8 +1080,7 @@ export const useRaceManagerStore = defineStore(
         }
       )
 
-
-      // ==================================================
+            // ==================================================
       // RECONSTRUIRE LES CLASSEMENTS
       // ==================================================
 
@@ -1161,13 +1160,12 @@ export const useRaceManagerStore = defineStore(
                 return String(
                   a.id ??
                   ""
-                )
-                  .localeCompare(
-                    String(
-                      b.id ??
-                      ""
-                    )
+                ).localeCompare(
+                  String(
+                    b.id ??
+                    ""
                   )
+                )
 
               }
 
@@ -1254,6 +1252,65 @@ export const useRaceManagerStore = defineStore(
           race.arrivals =
             race.results.length
 
+
+          // ==================================================
+          // FIN AUTOMATIQUE DE LA COURSE
+          //
+          // Cette partie est importante lorsque les
+          // participants sont scannés depuis un téléphone.
+          //
+          // L'ordinateur maître reçoit les arrivées
+          // depuis Firebase et vérifie si tous les
+          // participants sont arrivés.
+          // ==================================================
+
+          if (
+
+            race.status ===
+              "running" &&
+
+            race.participants >
+              0 &&
+
+            race.arrivals >=
+              race.participants
+
+          ) {
+
+            console.log(
+              "🏁 Tous les participants sont arrivés :",
+              race.categorie,
+              race.arrivals,
+              "/",
+              race.participants
+            )
+
+
+            // ==================================================
+            // PASSER IMMÉDIATEMENT LA COURSE À TERMINÉE
+            // ==================================================
+
+            race.status =
+              "finished"
+
+
+            race.finishTime =
+              Date.now()
+
+
+            // ==================================================
+            // SYNCHRONISER FIREBASE
+            //
+            // On ne met pas "await" ici car cette fonction
+            // est appelée depuis le listener Firebase.
+            // ==================================================
+
+            syncRaceToFirebase(
+              race
+            )
+
+          }
+
         }
 
       )
@@ -1266,6 +1323,10 @@ export const useRaceManagerStore = defineStore(
     // ==================================================
 
     return {
+
+      // ==================================================
+      // COURSES
+      // ==================================================
 
       races,
 
