@@ -2,25 +2,61 @@
 import RaceStatusBadge from "./RaceStatusBadge.vue"
 import RaceTimer from "./RaceTimer.vue"
 
+
 const props = defineProps({
+
   race: {
     type: Object,
     required: true,
   },
+
 })
 
-const emit = defineEmits(["start"])
+
+const emit = defineEmits([
+  "start",
+  "reset",
+])
+
+
+// ==================================================
+// DÉMARRER LA COURSE
+// ==================================================
 
 function startRace() {
-  emit("start", props.race.categorie)
+
+  emit(
+    "start",
+    props.race.categorie
+  )
+
+}
+
+
+// ==================================================
+// RÉINITIALISER LA COURSE
+// ==================================================
+
+function resetRace() {
+
+  emit(
+    "reset",
+    props.race.categorie
+  )
+
 }
 </script>
+
 
 <template>
 
 <div
   class="group rounded-3xl border border-slate-200 bg-white p-6 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
 >
+
+  <!-- ==================================================
+       EN-TÊTE
+  =================================================== -->
 
   <div class="flex items-start justify-between">
 
@@ -32,6 +68,7 @@ function startRace() {
 
       </h2>
 
+
       <p class="mt-2 text-slate-500">
 
         👥 {{ race.participants }} participants
@@ -40,13 +77,21 @@ function startRace() {
 
     </div>
 
+
     <RaceStatusBadge
       :status="race.status"
     />
 
   </div>
 
+
+  <!-- ==================================================
+       INFORMATIONS COURSE
+  =================================================== -->
+
   <div class="mt-8 space-y-5">
+
+    <!-- DÉPART -->
 
     <div class="flex justify-between">
 
@@ -56,14 +101,20 @@ function startRace() {
 
       </span>
 
+
       <span
         v-if="race.startTime"
         class="font-bold"
       >
 
-        {{ new Date(race.startTime).toLocaleTimeString() }}
+        {{
+          new Date(
+            race.startTime
+          ).toLocaleTimeString()
+        }}
 
       </span>
+
 
       <span
         v-else
@@ -76,6 +127,9 @@ function startRace() {
 
     </div>
 
+
+    <!-- CHRONO -->
+
     <div class="flex justify-between">
 
       <span class="text-slate-500">
@@ -84,11 +138,15 @@ function startRace() {
 
       </span>
 
+
       <RaceTimer
         :race="race"
       />
 
     </div>
+
+
+    <!-- ARRIVÉES -->
 
     <div class="flex justify-between">
 
@@ -98,9 +156,12 @@ function startRace() {
 
       </span>
 
-      <span class="font-black text-lg">
 
-        {{ race.arrivals }} / {{ race.participants }}
+      <span class="text-lg font-black">
+
+        {{ race.arrivals }}
+        /
+        {{ race.participants }}
 
       </span>
 
@@ -108,45 +169,123 @@ function startRace() {
 
   </div>
 
-  <button
+
+  <!-- ==================================================
+       COURSE EN ATTENTE
+  =================================================== -->
+
+  <div
     v-if="race.status === 'waiting'"
-    @click="startRace"
-    class="mt-8 w-full rounded-2xl bg-sky-600 py-4 text-xl font-bold text-white transition-all duration-300 hover:bg-sky-700 hover:scale-[1.02] active:scale-95"
+    class="mt-8"
   >
 
-    🏁 Démarrer
+    <button
+      type="button"
+      class="w-full rounded-2xl bg-sky-600 py-4 text-xl font-bold text-white transition-all duration-300 hover:bg-sky-700 hover:scale-[1.02] active:scale-95"
+      @click="startRace"
+    >
 
-  </button>
+      🏁 Démarrer
 
-  <button
+    </button>
+
+  </div>
+
+
+  <!-- ==================================================
+       COMPTE À REBOURS
+  =================================================== -->
+
+  <div
     v-else-if="race.status === 'countdown'"
-    disabled
-    class="mt-8 w-full rounded-2xl bg-orange-500 py-4 text-xl font-bold text-white animate-pulse"
+    class="mt-8 space-y-3"
   >
 
-    ⏳ Départ en cours...
+    <button
+      disabled
+      class="w-full rounded-2xl bg-orange-500 py-4 text-xl font-bold text-white animate-pulse"
+    >
 
-  </button>
+      ⏳ Départ en cours...
 
-  <button
+    </button>
+
+
+    <button
+      type="button"
+      class="w-full rounded-2xl border-2 border-red-500 bg-white py-3 font-bold text-red-600 transition hover:bg-red-50"
+      @click="resetRace"
+    >
+
+      🔄 Réinitialiser
+
+    </button>
+
+  </div>
+
+
+  <!-- ==================================================
+       COURSE EN COURS
+  =================================================== -->
+
+  <div
     v-else-if="race.status === 'running'"
-    disabled
-    class="mt-8 w-full rounded-2xl bg-green-600 py-4 text-xl font-bold text-white"
+    class="mt-8 space-y-3"
   >
 
-    🟢 Course en cours
+    <button
+      disabled
+      class="w-full rounded-2xl bg-green-600 py-4 text-xl font-bold text-white"
+    >
 
-  </button>
+      🟢 Course en cours
 
-  <button
+    </button>
+
+
+    <button
+      type="button"
+      class="w-full rounded-2xl border-2 border-red-500 bg-white py-3 font-bold text-red-600 transition hover:bg-red-50"
+      @click="resetRace"
+    >
+
+      🔄 Réinitialiser
+
+    </button>
+
+  </div>
+
+
+  <!-- ==================================================
+       COURSE TERMINÉE
+  =================================================== -->
+
+  <div
     v-else
-    disabled
-    class="mt-8 w-full rounded-2xl bg-slate-700 py-4 text-xl font-bold text-white"
+    class="mt-8 space-y-3"
   >
 
-    ✅ Course terminée
+    <button
+      disabled
+      class="w-full rounded-2xl bg-slate-700 py-4 text-xl font-bold text-white"
+    >
 
-  </button>
+      ✅ Course terminée
+
+    </button>
+
+
+    <button
+      type="button"
+      class="w-full rounded-2xl border-2 border-red-500 bg-white py-3 font-bold text-red-600 transition hover:bg-red-50"
+      @click="resetRace"
+    >
+
+      🔄 Réinitialiser
+
+    </button>
+
+  </div>
 
 </div>
 
