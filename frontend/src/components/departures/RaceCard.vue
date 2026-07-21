@@ -33,6 +33,11 @@ function resetRace() {
     props.race.categorie
   )
 
+  console.log(
+    "📤 Événement reset-race émis :",
+    props.race.categorie
+  )
+
 }
 </script>
 
