@@ -22,31 +22,40 @@ export const useRaceManagerStore = defineStore(
     const races = ref(
       RACES.map((race) => ({
 
-        id: race.id,
+        id:
+          race.id,
 
-        categorie: race.categorie,
+        categorie:
+          race.categorie,
 
-        label: race.label,
+        label:
+          race.label,
 
         // waiting | countdown | running | finished
-        status: "waiting",
+        status:
+          "waiting",
 
-        startTime: null,
+        startTime:
+          null,
 
-        finishTime: null,
+        finishTime:
+          null,
 
-        participants: 0,
+        participants:
+          0,
 
-        arrivals: 0,
+        arrivals:
+          0,
 
-        results: [],
+        results:
+          [],
 
       }))
     )
 
 
     // ==================================================
-    // RESTAURATION SAUVEGARDE LOCALE
+    // RESTAURATION DE LA SAUVEGARDE LOCALE
     // ==================================================
 
     const backup =
@@ -54,11 +63,75 @@ export const useRaceManagerStore = defineStore(
 
 
     if (
-      backup?.data?.races
+      Array.isArray(
+        backup?.data?.races
+      )
     ) {
 
+      const savedByCategory =
+        new Map(
+
+          backup.data.races.map(
+            race => [
+
+              race.categorie,
+
+              race,
+
+            ]
+          )
+
+        )
+
+
       races.value =
-        backup.data.races
+        races.value.map(
+          defaultRace => {
+
+            const saved =
+              savedByCategory.get(
+                defaultRace.categorie
+              )
+
+
+            if (
+              !saved
+            ) {
+
+              return defaultRace
+
+            }
+
+
+            return {
+
+              ...defaultRace,
+
+              ...saved,
+
+              results:
+                Array.isArray(
+                  saved.results
+                )
+                  ? saved.results
+                  : [],
+
+              arrivals:
+                Number(
+                  saved.arrivals ??
+                  0
+                ),
+
+              participants:
+                Number(
+                  saved.participants ??
+                  0
+                ),
+
+            }
+
+          }
+        )
 
     }
 
@@ -73,8 +146,10 @@ export const useRaceManagerStore = defineStore(
 
       return races.value.find(
         race =>
+
           race.categorie ===
           categorie
+
       )
 
     }
@@ -88,8 +163,10 @@ export const useRaceManagerStore = defineStore(
 
       return races.value.find(
         race =>
+
           race.status ===
           "running"
+
       )
 
     }
@@ -103,8 +180,10 @@ export const useRaceManagerStore = defineStore(
 
       return races.value.filter(
         race =>
+
           race.status ===
           "waiting"
+
       )
 
     }
@@ -118,20 +197,39 @@ export const useRaceManagerStore = defineStore(
 
       return races.value.filter(
         race =>
+
           race.status ===
           "finished"
+
       )
 
     }
 
 
     // ==================================================
-    // SAUVEGARDE FIREBASE
+    // SYNCHRONISER UNE COURSE VERS FIREBASE
     // ==================================================
 
     async function syncRaceToFirebase(
       race
     ) {
+
+      if (
+        !race
+      ) {
+
+        return {
+
+          success:
+            false,
+
+          message:
+            "Course introuvable",
+
+        }
+
+      }
+
 
       try {
 
@@ -156,18 +254,30 @@ export const useRaceManagerStore = defineStore(
             race.finishTime,
 
           participants:
-            race.participants,
+            Number(
+              race.participants ??
+              0
+            ),
 
           arrivals:
-            race.arrivals,
+            Number(
+              race.arrivals ??
+              0
+            ),
 
         })
 
 
         console.log(
+
           "🔥 Course synchronisée :",
+
           race.categorie,
-          race.status
+
+          race.status,
+
+          `${race.arrivals}/${race.participants}`
+
         )
 
 
@@ -185,8 +295,11 @@ export const useRaceManagerStore = defineStore(
       ) {
 
         console.error(
+
           "❌ Erreur synchronisation course Firebase :",
+
           error
+
         )
 
 
@@ -200,6 +313,44 @@ export const useRaceManagerStore = defineStore(
         }
 
       }
+
+    }
+
+
+    // ==================================================
+    // NOMBRE DE PARTICIPANTS
+    // ==================================================
+
+    function setParticipants(
+      categorie,
+      total
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return
+
+      }
+
+
+      race.participants =
+        Math.max(
+
+          0,
+
+          Number(
+            total
+          ) || 0
+
+        )
 
     }
 
@@ -235,13 +386,39 @@ export const useRaceManagerStore = defineStore(
       }
 
 
+      // Une course terminée doit obligatoirement
+      // être réinitialisée avant un nouveau départ.
+
+      if (
+        race.status ===
+        "finished"
+      ) {
+
+        return {
+
+          success:
+            false,
+
+          message:
+            "Réinitialisez la course avant de la redémarrer",
+
+        }
+
+      }
+
+
       race.status =
         "countdown"
 
 
-      await syncRaceToFirebase(
-        race
-      )
+      race.finishTime =
+        null
+
+
+      const firebaseResult =
+        await syncRaceToFirebase(
+          race
+        )
 
 
       return {
@@ -251,13 +428,16 @@ export const useRaceManagerStore = defineStore(
 
         race,
 
+        firebaseSynced:
+          firebaseResult.success,
+
       }
 
     }
 
 
     // ==================================================
-    // DÉMARRER UNE COURSE
+    // DÉMARRER LA COURSE
     // ==================================================
 
     async function startRace(
@@ -281,6 +461,28 @@ export const useRaceManagerStore = defineStore(
 
           message:
             "Course introuvable",
+
+        }
+
+      }
+
+
+      // Protection :
+      // une course terminée ne peut pas
+      // revenir directement à running.
+
+      if (
+        race.status ===
+        "finished"
+      ) {
+
+        return {
+
+          success:
+            false,
+
+          message:
+            "Réinitialisez la course avant de la redémarrer",
 
         }
 
@@ -359,6 +561,9 @@ export const useRaceManagerStore = defineStore(
       }
 
 
+      // Déjà terminée :
+      // ne pas recréer un nouveau finishTime.
+
       if (
         race.status ===
         "finished"
@@ -371,10 +576,19 @@ export const useRaceManagerStore = defineStore(
 
           race,
 
+          alreadyFinished:
+            true,
+
         }
 
       }
 
+
+      // IMPORTANT :
+      // on modifie immédiatement l'état local.
+      //
+      // L'interface ordinateur/TV voit donc
+      // directement "Course terminée".
 
       race.status =
         "finished"
@@ -384,14 +598,20 @@ export const useRaceManagerStore = defineStore(
         Date.now()
 
 
-      await syncRaceToFirebase(
-        race
-      )
+      const firebaseResult =
+        await syncRaceToFirebase(
+          race
+        )
 
 
       console.log(
+
         "🏁 Course terminée :",
-        categorie
+
+        categorie,
+
+        `${race.arrivals}/${race.participants}`
+
       )
 
 
@@ -401,6 +621,9 @@ export const useRaceManagerStore = defineStore(
           true,
 
         race,
+
+        firebaseSynced:
+          firebaseResult.success,
 
       }
 
@@ -440,19 +663,38 @@ export const useRaceManagerStore = defineStore(
 
 
       console.log(
-        "🔄 Réinitialisation de la course :",
+
+        "🔄 Réinitialisation :",
+
         categorie,
+
         "| Session :",
+
         sessionId
+
       )
 
 
       try {
 
+        // ==============================================
+        // 1. SUPPRIMER LES ARRIVÉES FIREBASE
+        // ==============================================
+        //
+        // On fait cette opération AVANT de remettre
+        // la course à waiting.
+        //
+        // Sinon le listener Firebase pourrait récupérer
+        // les anciennes arrivées et remettre immédiatement
+        // le compteur.
+
         const deleteResult =
           await deleteArrivalsByRace(
+
             sessionId,
+
             categorie
+
           )
 
 
@@ -460,13 +702,24 @@ export const useRaceManagerStore = defineStore(
           !deleteResult?.success
         ) {
 
+          console.error(
+
+            "❌ Suppression des arrivées impossible :",
+
+            deleteResult
+
+          )
+
+
           return {
 
             success:
               false,
 
             message:
+
               deleteResult?.message ||
+
               "Impossible de supprimer les arrivées",
 
           }
@@ -475,10 +728,17 @@ export const useRaceManagerStore = defineStore(
 
 
         console.log(
+
           "🗑️ Arrivées Firebase supprimées :",
+
           deleteResult.count
+
         )
 
+
+        // ==============================================
+        // 2. REMETTRE LA COURSE LOCALE À ZÉRO
+        // ==============================================
 
         race.status =
           "waiting"
@@ -500,6 +760,18 @@ export const useRaceManagerStore = defineStore(
           []
 
 
+        // IMPORTANT :
+        //
+        // race.participants n'est PAS remis à zéro.
+        //
+        // Le nombre d'élèves de la catégorie reste donc
+        // disponible pour le prochain départ.
+
+
+        // ==============================================
+        // 3. SYNCHRONISER WAITING VERS FIREBASE
+        // ==============================================
+
         const firebaseResult =
           await syncRaceToFirebase(
             race
@@ -507,8 +779,15 @@ export const useRaceManagerStore = defineStore(
 
 
         console.log(
+
           "✅ Course réinitialisée :",
-          categorie
+
+          categorie,
+
+          "| arrivées supprimées :",
+
+          deleteResult.count
+
         )
 
 
@@ -534,8 +813,11 @@ export const useRaceManagerStore = defineStore(
       ) {
 
         console.error(
+
           "❌ Erreur réinitialisation course :",
+
           error
+
         )
 
 
@@ -558,88 +840,51 @@ export const useRaceManagerStore = defineStore(
     // RÉINITIALISER TOUTES LES COURSES
     // ==================================================
 
-    async function resetAllRaces() {
+    async function resetAllRaces(
+      sessionId = "cross-2026"
+    ) {
 
-      const syncPromises =
+      const results =
         []
 
 
-      races.value.forEach(
-        race => {
+      // Réinitialisation volontairement séquentielle.
+      //
+      // Cela évite d'envoyer énormément de suppressions
+      // Firestore simultanément.
 
-          race.status =
-            "waiting"
+      for (
+        const race of races.value
+      ) {
 
+        const result =
+          await resetRace(
 
-          race.startTime =
-            null
+            race.categorie,
 
-
-          race.finishTime =
-            null
-
-
-          race.arrivals =
-            0
-
-
-          race.results =
-            []
-
-
-          syncPromises.push(
-
-            syncRaceToFirebase(
-              race
-            )
+            sessionId
 
           )
 
-        }
-      )
 
+        results.push(
+          result
+        )
 
-      await Promise.allSettled(
-        syncPromises
-      )
+      }
 
 
       return {
 
         success:
-          true,
+          results.every(
+            result =>
+              result?.success
+          ),
+
+        results,
 
       }
-
-    }
-
-
-    // ==================================================
-    // NOMBRE DE PARTICIPANTS
-    // ==================================================
-
-    function setParticipants(
-      categorie,
-      total
-    ) {
-
-      const race =
-        getRace(
-          categorie
-        )
-
-
-      if (
-        !race
-      ) {
-
-        return
-
-      }
-
-
-      race.participants =
-        total
 
     }
 
@@ -655,7 +900,7 @@ export const useRaceManagerStore = defineStore(
 
       const race =
         getRace(
-          participant.categorie
+          participant?.categorie
         )
 
 
@@ -675,6 +920,10 @@ export const useRaceManagerStore = defineStore(
 
       }
 
+
+      // ==================================================
+      // LA COURSE DOIT ÊTRE EN COURS
+      // ==================================================
 
       if (
         race.status !==
@@ -709,7 +958,6 @@ export const useRaceManagerStore = defineStore(
             String(
               participant.id
             )
-
         )
 
 
@@ -739,31 +987,38 @@ export const useRaceManagerStore = defineStore(
 
 
       // ==================================================
-      // CALCUL DU TEMPS
+      // CALCUL DE L'HEURE D'ARRIVÉE
       // ==================================================
 
       const arrivalTime =
         Date.now()
 
 
-      const elapsedTime =
+      // ==================================================
+      // CALCUL DU TEMPS DE COURSE
+      // ==================================================
 
-        arrivalTime -
+      const elapsedTime =
 
         race.startTime
 
+          ? arrivalTime -
+            Number(
+              race.startTime
+            )
+
+          : 0
+
 
       // ==================================================
-      // POSITION
+      // CRÉER L'ARRIVÉE
       // ==================================================
-
-      race.arrivals++
-
 
       const arrival = {
 
         position:
-          race.arrivals,
+          race.results.length +
+          1,
 
         participant,
 
@@ -776,8 +1031,42 @@ export const useRaceManagerStore = defineStore(
       }
 
 
+      // ==================================================
+      // AJOUTER LE RÉSULTAT
+      // ==================================================
+
       race.results.push(
         arrival
+      )
+
+
+      // IMPORTANT :
+      //
+      // On recalcule arrivals depuis results
+      // au lieu de faire race.arrivals++.
+      //
+      // Cela évite les incohérences de compteur.
+
+      race.arrivals =
+        race.results.length
+
+
+      console.log(
+
+        "🏃 Arrivée locale :",
+
+        participant.prenom,
+
+        participant.nom,
+
+        "|",
+
+        race.categorie,
+
+        "|",
+
+        `${race.arrivals}/${race.participants}`
+
       )
 
 
@@ -795,14 +1084,39 @@ export const useRaceManagerStore = defineStore(
 
       ) {
 
+        // IMPORTANT :
+        //
+        // On ne se contente PAS d'appeler finishRace()
+        // sans attendre.
+        //
+        // On change immédiatement le statut local.
+        //
+        // Ainsi RaceCard, l'écran TV et les autres
+        // composants voient immédiatement "finished".
+
+        race.status =
+          "finished"
+
+
+        race.finishTime =
+          Date.now()
+
+
         console.log(
-          "🏁 Tous les participants sont arrivés localement :",
-          race.categorie
+
+          "🏁 FIN AUTOMATIQUE LOCALE :",
+
+          race.categorie,
+
+          `${race.arrivals}/${race.participants}`
+
         )
 
 
-        finishRace(
-          race.categorie
+        // Synchronisation Firebase en arrière-plan.
+
+        void syncRaceToFirebase(
+          race
         )
 
       }
@@ -837,7 +1151,7 @@ export const useRaceManagerStore = defineStore(
 
 
       if (
-        !race
+        !race?.startTime
       ) {
 
         return 0
@@ -845,14 +1159,9 @@ export const useRaceManagerStore = defineStore(
       }
 
 
-      if (
-        !race.startTime
-      ) {
-
-        return 0
-
-      }
-
+      // ==================================================
+      // COURSE TERMINÉE
+      // ==================================================
 
       if (
 
@@ -865,20 +1174,30 @@ export const useRaceManagerStore = defineStore(
 
         return (
 
-          race.finishTime -
+          Number(
+            race.finishTime
+          ) -
 
-          race.startTime
+          Number(
+            race.startTime
+          )
 
         )
 
       }
 
 
+      // ==================================================
+      // COURSE EN COURS
+      // ==================================================
+
       return (
 
         Date.now() -
 
-        race.startTime
+        Number(
+          race.startTime
+        )
 
       )
 
@@ -886,7 +1205,7 @@ export const useRaceManagerStore = defineStore(
 
 
     // ==================================================
-    // APPLIQUER UNE COURSE FIREBASE
+    // APPLIQUER UNE COURSE REÇUE DE FIREBASE
     // ==================================================
 
     function applyFirebaseRace(
@@ -894,8 +1213,7 @@ export const useRaceManagerStore = defineStore(
     ) {
 
       if (
-        !firebaseRace
-          ?.categorie
+        !firebaseRace?.categorie
       ) {
 
         return
@@ -913,43 +1231,142 @@ export const useRaceManagerStore = defineStore(
         !race
       ) {
 
+        console.warn(
+
+          "⚠️ Course Firebase inconnue :",
+
+          firebaseRace.categorie
+
+        )
+
+
         return
 
       }
 
 
+      const incomingStatus =
+        firebaseRace.status
+
+
+      // ==================================================
+      // PROTECTION CONTRE UN ANCIEN SNAPSHOT FIREBASE
+      // ==================================================
+      //
+      // PROBLÈME CORRIGÉ :
+      //
+      // 1. dernier participant scanné
+      // 2. course passe à finished
+      // 3. un ancien snapshot "running" arrive
+      // 4. l'ancienne version remettait la course à running
+      //
+      // Maintenant :
+      //
+      // finished -> running     INTERDIT
+      // finished -> countdown   INTERDIT
+      // finished -> waiting     AUTORISÉ
+      //
+      // Le passage vers waiting correspond à un vrai RESET.
+
+
+      const staleRunningState =
+
+        race.status ===
+          "finished" &&
+
+        (
+          incomingStatus ===
+            "running" ||
+
+          incomingStatus ===
+            "countdown"
+        )
+
+
       if (
-        firebaseRace.status !==
-        undefined
+        incomingStatus !==
+          undefined &&
+
+        !staleRunningState
       ) {
 
         race.status =
-          firebaseRace.status
+          incomingStatus
 
       }
 
+
+      if (
+        staleRunningState
+      ) {
+
+        console.warn(
+
+          "🛡️ Ancien état Firebase ignoré :",
+
+          race.categorie,
+
+          incomingStatus,
+
+          "car la course est déjà finished"
+
+        )
+
+      }
+
+
+      // ==================================================
+      // START TIME
+      // ==================================================
 
       if (
         firebaseRace.startTime !==
         undefined
       ) {
 
-        race.startTime =
-          firebaseRace.startTime
+        // Si nous venons de refuser un ancien
+        // snapshot running, nous gardons notre
+        // état local actuel.
+
+        if (
+          !staleRunningState
+        ) {
+
+          race.startTime =
+            firebaseRace.startTime
+
+        }
 
       }
 
+
+      // ==================================================
+      // FINISH TIME
+      // ==================================================
 
       if (
         firebaseRace.finishTime !==
         undefined
       ) {
 
-        race.finishTime =
-          firebaseRace.finishTime
+        // Ne jamais effacer finishTime à cause
+        // d'un ancien snapshot running.
+
+        if (
+          !staleRunningState
+        ) {
+
+          race.finishTime =
+            firebaseRace.finishTime
+
+        }
 
       }
 
+
+      // ==================================================
+      // PARTICIPANTS
+      // ==================================================
 
       if (
         firebaseRace.participants !==
@@ -957,15 +1374,42 @@ export const useRaceManagerStore = defineStore(
       ) {
 
         race.participants =
-          firebaseRace.participants
+          Math.max(
+
+            0,
+
+            Number(
+              firebaseRace.participants
+            ) || 0
+
+          )
 
       }
+
+
+      // ==================================================
+      // IMPORTANT : ARRIVALS
+      // ==================================================
+      //
+      // Nous ne recopions volontairement PAS ici
+      // firebaseRace.arrivals.
+      //
+      // Le véritable nombre d'arrivées est calculé
+      // depuis la collection "arrivals" dans
+      // applyFirebaseArrivals().
+      //
+      // Cela évite qu'un ancien document de course
+      // remette par exemple :
+      //
+      // arrivals = 1
+      //
+      // alors que 2 documents d'arrivée existent.
 
     }
 
 
     // ==================================================
-    // APPLIQUER LES COURSES FIREBASE
+    // APPLIQUER PLUSIEURS COURSES FIREBASE
     // ==================================================
 
     function applyFirebaseRaces(
@@ -1016,8 +1460,19 @@ export const useRaceManagerStore = defineStore(
 
 
       // ==================================================
-      // RÉINITIALISER LES RÉSULTATS LOCAUX
+      // FIREBASE EST LA SOURCE OFFICIELLE DES ARRIVÉES
       // ==================================================
+      //
+      // À chaque snapshot, on reconstruit les résultats.
+      //
+      // Cela permet notamment :
+      //
+      // - téléphone -> ordinateur
+      // - plusieurs scanners
+      // - suppression d'une arrivée
+      // - reset
+      // - reconnexion réseau
+
 
       races.value.forEach(
         race => {
@@ -1034,22 +1489,18 @@ export const useRaceManagerStore = defineStore(
 
 
       // ==================================================
-      // REGROUPER LES ARRIVÉES PAR CATÉGORIE
+      // REGROUPER PAR CATÉGORIE
       // ==================================================
 
       const grouped =
-        {}
+        new Map()
 
 
       firebaseArrivals.forEach(
         arrival => {
 
-          const categorie =
-            arrival.categorie
-
-
           if (
-            !categorie
+            !arrival?.categorie
           ) {
 
             return
@@ -1058,40 +1509,43 @@ export const useRaceManagerStore = defineStore(
 
 
           if (
-            !grouped[
-              categorie
-            ]
+            !grouped.has(
+              arrival.categorie
+            )
           ) {
 
-            grouped[
-              categorie
-            ] =
+            grouped.set(
+
+              arrival.categorie,
+
               []
+
+            )
 
           }
 
 
-          grouped[
-            categorie
-          ].push(
-            arrival
-          )
+          grouped
+            .get(
+              arrival.categorie
+            )
+            .push(
+              arrival
+            )
 
         }
       )
 
-            // ==================================================
-      // RECONSTRUIRE LES CLASSEMENTS
+
+      // ==================================================
+      // RECONSTRUIRE CHAQUE COURSE
       // ==================================================
 
-      Object.entries(
-        grouped
-      ).forEach(
-
-        ([
-          categorie,
+      grouped.forEach(
+        (
           arrivalsList,
-        ]) => {
+          categorie
+        ) => {
 
           const race =
             getRace(
@@ -1104,9 +1558,13 @@ export const useRaceManagerStore = defineStore(
           ) {
 
             console.warn(
-              "Course introuvable pour les arrivées Firebase :",
+
+              "⚠️ Course introuvable pour les arrivées Firebase :",
+
               categorie
+
             )
+
 
             return
 
@@ -1121,7 +1579,6 @@ export const useRaceManagerStore = defineStore(
             [
               ...arrivalsList,
             ].sort(
-
               (
                 a,
                 b
@@ -1147,122 +1604,215 @@ export const useRaceManagerStore = defineStore(
                 ) {
 
                   return (
-
                     timeA -
-
                     timeB
-
                   )
 
                 }
 
+
+                // Sécurité si deux arrivées
+                // ont exactement le même timestamp.
 
                 return String(
                   a.id ??
                   ""
                 ).localeCompare(
+
                   String(
                     b.id ??
                     ""
                   )
+
                 )
 
               }
-
             )
 
 
           // ==================================================
-          // CONVERTIR AU FORMAT CROSSMANAGER
+          // CONSTRUIRE LES RÉSULTATS
           // ==================================================
 
           race.results =
             sorted.map(
-
               (
                 arrival,
                 index
-              ) => {
+              ) => ({
 
-                return {
+                id:
+                  arrival.id,
+
+                position:
+                  index + 1,
+
+                participant: {
 
                   id:
-                    arrival.id,
+                    arrival.participantId,
 
-                  position:
-                    index + 1,
+                  dossard:
+                    arrival.dossard ??
+                    "",
 
-                  participant: {
+                  nom:
+                    arrival.nom ??
+                    "",
 
-                    id:
-                      arrival.participantId,
+                  prenom:
+                    arrival.prenom ??
+                    "",
 
-                    dossard:
-                      arrival.dossard ??
-                      "",
+                  classe:
+                    arrival.classe ??
+                    "",
 
-                    nom:
-                      arrival.nom ??
-                      "",
+                  sexe:
+                    arrival.sexe ??
+                    "",
 
-                    prenom:
-                      arrival.prenom ??
-                      "",
+                  categorie:
+                    arrival.categorie,
 
-                    classe:
-                      arrival.classe ??
-                      "",
+                },
 
-                    sexe:
-                      arrival.sexe ??
-                      "",
+                scanner:
+                  arrival.scanner ??
+                  "Scanner",
 
-                    categorie:
-                      arrival.categorie,
+                arrivalTime:
+                  Number(
+                    arrival.arrivalTime ??
+                    0
+                  ),
 
-                  },
+                elapsedTime:
+                  Number(
+                    arrival.elapsedTime ??
+                    0
+                  ),
 
-                  scanner:
-                    arrival.scanner ??
-                    "Scanner",
-
-                  arrivalTime:
-                    Number(
-                      arrival.arrivalTime ??
-                      0
-                    ),
-
-                  elapsedTime:
-                    Number(
-                      arrival.elapsedTime ??
-                      0
-                    ),
-
-                }
-
-              }
-
+              })
             )
 
 
           // ==================================================
-          // NOMBRE OFFICIEL D'ARRIVÉES
+          // NOMBRE RÉEL D'ARRIVÉES
           // ==================================================
 
           race.arrivals =
             race.results.length
 
 
+          console.log(
+
+            "📡 Arrivées Firebase :",
+
+            race.categorie,
+
+            `${race.arrivals}/${race.participants}`,
+
+            "| statut :",
+
+            race.status
+
+          )
+
+
           // ==================================================
-          // FIN AUTOMATIQUE DE LA COURSE
-          //
-          // Cette partie est importante lorsque les
-          // participants sont scannés depuis un téléphone.
-          //
-          // L'ordinateur maître reçoit les arrivées
-          // depuis Firebase et vérifie si tous les
-          // participants sont arrivés.
+          // FIN AUTOMATIQUE DEPUIS FIREBASE
           // ==================================================
+          //
+          // C'EST CETTE PARTIE QUI EST IMPORTANTE
+          // POUR TON CAS.
+          //
+          // Lorsque le téléphone scanne :
+          //
+          // téléphone
+          //    ↓
+          // collection arrivals
+          //    ↓
+          // ordinateur maître
+          //    ↓
+          // applyFirebaseArrivals()
+          //
+          // Si le nombre d'arrivées atteint le nombre
+          // de participants, l'ordinateur termine
+          // automatiquement la course.
+
+
+          if (
+
+            race.status ===
+              "running" &&
+
+            race.participants >
+              0 &&
+
+            race.arrivals >=
+              race.participants
+
+          ) {
+
+            // Changement IMMÉDIAT local.
+
+            race.status =
+              "finished"
+
+
+            race.finishTime =
+              Date.now()
+
+
+            console.log(
+
+              "🏁 FIN AUTOMATIQUE FIREBASE :",
+
+              race.categorie,
+
+              `${race.arrivals}/${race.participants}`
+
+            )
+
+
+            // Synchronisation du nouveau statut
+            // vers tous les appareils.
+
+            void syncRaceToFirebase(
+              race
+            )
+
+          }
+
+        }
+      )
+
+    }
+
+        // ==================================================
+    // VÉRIFIER / SÉCURISER LES FINS DE COURSE
+    // ==================================================
+    //
+    // Cette fonction peut être appelée lorsqu'on veut
+    // vérifier l'état de toutes les courses.
+    //
+    // Elle constitue une sécurité supplémentaire :
+    //
+    // participants = 2
+    // arrivals = 2
+    // status = running
+    //
+    // devient automatiquement :
+    //
+    // status = finished
+    //
+    // ==================================================
+
+    function checkAutomaticFinishes() {
+
+      races.value.forEach(
+        race => {
 
           if (
 
@@ -1278,40 +1828,378 @@ export const useRaceManagerStore = defineStore(
           ) {
 
             console.log(
-              "🏁 Tous les participants sont arrivés :",
+
+              "🏁 Correction automatique du statut :",
+
               race.categorie,
-              race.arrivals,
-              "/",
-              race.participants
+
+              `${race.arrivals}/${race.participants}`
+
             )
 
-
-            // ==================================================
-            // PASSER IMMÉDIATEMENT LA COURSE À TERMINÉE
-            // ==================================================
 
             race.status =
               "finished"
 
 
-            race.finishTime =
-              Date.now()
+            if (
+              !race.finishTime
+            ) {
+
+              race.finishTime =
+                Date.now()
+
+            }
 
 
-            // ==================================================
-            // SYNCHRONISER FIREBASE
-            //
-            // On ne met pas "await" ici car cette fonction
-            // est appelée depuis le listener Firebase.
-            // ==================================================
-
-            syncRaceToFirebase(
+            void syncRaceToFirebase(
               race
             )
 
           }
 
         }
+      )
+
+    }
+
+
+    // ==================================================
+    // METTRE À JOUR LE NOMBRE DE PARTICIPANTS
+    // ET VÉRIFIER LA FIN
+    // ==================================================
+    //
+    // Utile lorsque les participants sont chargés
+    // après les données Firebase.
+    //
+    // Exemple :
+    //
+    // Firebase a déjà envoyé 2 arrivées
+    // mais participants était encore 0.
+    //
+    // Quand participants devient 2,
+    // la course doit pouvoir passer à finished.
+    //
+    // ==================================================
+
+    function updateParticipantsAndCheck(
+      categorie,
+      total
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return {
+
+          success:
+            false,
+
+          message:
+            "Course introuvable",
+
+        }
+
+      }
+
+
+      race.participants =
+        Math.max(
+
+          0,
+
+          Number(
+            total
+          ) || 0
+
+        )
+
+
+      if (
+
+        race.status ===
+          "running" &&
+
+        race.participants >
+          0 &&
+
+        race.arrivals >=
+          race.participants
+
+      ) {
+
+        race.status =
+          "finished"
+
+
+        race.finishTime =
+          Date.now()
+
+
+        console.log(
+
+          "🏁 Fin détectée après mise à jour participants :",
+
+          race.categorie,
+
+          `${race.arrivals}/${race.participants}`
+
+        )
+
+
+        void syncRaceToFirebase(
+          race
+        )
+
+      }
+
+
+      return {
+
+        success:
+          true,
+
+        race,
+
+      }
+
+    }
+
+
+    // ==================================================
+    // FORCER LA COHÉRENCE DES POSITIONS
+    // ==================================================
+
+    function rebuildPositions(
+      categorie
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return
+
+      }
+
+
+      race.results =
+        race.results.map(
+          (
+            result,
+            index
+          ) => ({
+
+            ...result,
+
+            position:
+              index + 1,
+
+          })
+        )
+
+
+      race.arrivals =
+        race.results.length
+
+    }
+
+
+    // ==================================================
+    // SUPPRIMER LOCALEMENT LES RÉSULTATS D'UNE COURSE
+    // ==================================================
+    //
+    // Cette fonction ne touche PAS Firebase.
+    //
+    // Le véritable reset doit toujours passer
+    // par resetRace().
+    //
+    // ==================================================
+
+    function clearLocalResults(
+      categorie
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return {
+
+          success:
+            false,
+
+          message:
+            "Course introuvable",
+
+        }
+
+      }
+
+
+      race.results =
+        []
+
+
+      race.arrivals =
+        0
+
+
+      return {
+
+        success:
+          true,
+
+        race,
+
+      }
+
+    }
+
+
+    // ==================================================
+    // OBTENIR LES RÉSULTATS D'UNE COURSE
+    // ==================================================
+
+    function getRaceResults(
+      categorie
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return []
+
+      }
+
+
+      return race.results
+
+    }
+
+
+    // ==================================================
+    // OBTENIR LE NOMBRE D'ARRIVÉES
+    // ==================================================
+
+    function getArrivalCount(
+      categorie
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return 0
+
+      }
+
+
+      return race.arrivals
+
+    }
+
+
+    // ==================================================
+    // SAVOIR SI UNE COURSE EST TERMINÉE
+    // ==================================================
+
+    function isRaceFinished(
+      categorie
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return false
+
+      }
+
+
+      return (
+        race.status ===
+        "finished"
+      )
+
+    }
+
+
+    // ==================================================
+    // SAVOIR SI TOUS LES PARTICIPANTS SONT ARRIVÉS
+    // ==================================================
+
+    function allParticipantsArrived(
+      categorie
+    ) {
+
+      const race =
+        getRace(
+          categorie
+        )
+
+
+      if (
+        !race
+      ) {
+
+        return false
+
+      }
+
+
+      if (
+        race.participants <=
+        0
+      ) {
+
+        return false
+
+      }
+
+
+      return (
+
+        race.arrivals >=
+        race.participants
 
       )
 
@@ -1319,21 +2207,21 @@ export const useRaceManagerStore = defineStore(
 
 
     // ==================================================
-    // RETURN
+    // RETOUR DU STORE
     // ==================================================
 
     return {
 
-      // ==================================================
-      // COURSES
-      // ==================================================
+      // ================================================
+      // ÉTAT
+      // ================================================
 
       races,
 
 
-      // ==================================================
-      // RECHERCHE
-      // ==================================================
+      // ================================================
+      // RECHERCHE DES COURSES
+      // ================================================
 
       getRace,
 
@@ -1344,9 +2232,9 @@ export const useRaceManagerStore = defineStore(
       getFinishedRaces,
 
 
-      // ==================================================
-      // GESTION DES COURSES
-      // ==================================================
+      // ================================================
+      // GESTION DES DÉPARTS
+      // ================================================
 
       startCountdown,
 
@@ -1354,30 +2242,50 @@ export const useRaceManagerStore = defineStore(
 
       finishRace,
 
+
+      // ================================================
+      // RÉINITIALISATION
+      // ================================================
+
       resetRace,
 
       resetAllRaces,
 
+      clearLocalResults,
+
+
+      // ================================================
+      // PARTICIPANTS
+      // ================================================
+
       setParticipants,
 
+      updateParticipantsAndCheck,
 
-      // ==================================================
+
+      // ================================================
       // ARRIVÉES
-      // ==================================================
+      // ================================================
 
       registerArrival,
 
+      getRaceResults,
 
-      // ==================================================
+      getArrivalCount,
+
+      rebuildPositions,
+
+
+      // ================================================
       // CHRONOMÉTRAGE
-      // ==================================================
+      // ================================================
 
       getElapsedTime,
 
 
-      // ==================================================
+      // ================================================
       // FIREBASE
-      // ==================================================
+      // ================================================
 
       syncRaceToFirebase,
 
@@ -1386,6 +2294,17 @@ export const useRaceManagerStore = defineStore(
       applyFirebaseRaces,
 
       applyFirebaseArrivals,
+
+
+      // ================================================
+      // SÉCURITÉS
+      // ================================================
+
+      checkAutomaticFinishes,
+
+      isRaceFinished,
+
+      allParticipantsArrived,
 
     }
 
