@@ -1,7 +1,7 @@
-<script setup>
 import {
   computed,
   ref,
+  onMounted,
 } from "vue"
 
 import {
@@ -11,6 +11,14 @@ import {
 import {
   useAppStore,
 } from "../stores/appStore"
+
+import {
+  useFirebaseStore,
+} from "../stores/firebaseStore"
+
+import {
+  useRaceManagerStore,
+} from "../stores/raceManagerStore"
 
 import ScannerCamera from "../components/scanner/ScannerCamera.vue"
 import LastArrivalCard from "../components/scanner/LastArrivalCard.vue"
@@ -26,6 +34,12 @@ const scannerStore =
 const app =
   useAppStore()
 
+const firebaseStore =
+  useFirebaseStore()
+
+const raceManager =
+  useRaceManagerStore()
+
 
 // ==================================================
 // MODE SCANNER
@@ -36,6 +50,66 @@ if (
 ) {
   app.setScanner(1)
 }
+
+// ==================================================
+// SYNCHRONISATION FIREBASE DU SCANNER
+// ==================================================
+
+onMounted(
+  async () => {
+
+    console.log(
+      "📱 ScannerView : connexion Firebase..."
+    )
+
+
+    try {
+
+      await firebaseStore.connect()
+
+
+      console.log(
+        "📱 ScannerView : Firebase connecté"
+      )
+
+
+      console.table(
+
+        raceManager.races.map(
+          race => ({
+
+            categorie:
+              race.categorie,
+
+            status:
+              race.status,
+
+            participants:
+              race.participants,
+
+            arrivals:
+              race.arrivals,
+
+          })
+        )
+
+      )
+
+    }
+
+    catch (
+      error
+    ) {
+
+      console.error(
+        "❌ ScannerView : erreur connexion Firebase :",
+        error
+      )
+
+    }
+
+  }
+)
 
 
 // ==================================================
