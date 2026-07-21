@@ -1,6 +1,8 @@
 <script setup>
 import RaceStatusBadge from "./RaceStatusBadge.vue"
 import RaceTimer from "./RaceTimer.vue"
+import { useRaceManagerStore } from "../../stores/raceManagerStore"
+import { useRaceStore } from "../../stores/raceStore"
 
 const props = defineProps({
   race: {
@@ -14,6 +16,13 @@ const emit = defineEmits([
   "reset",
 ])
 
+const raceManager =
+  useRaceManagerStore()
+
+const raceStore =
+  useRaceStore()
+
+
 function startRace() {
   emit(
     "start",
@@ -21,24 +30,100 @@ function startRace() {
   )
 }
 
-function resetRace() {
+async function resetRace() {
+
+  const categorie =
+    props.race.categorie
+
 
   console.log(
-    "🔄 Clic réinitialiser dans RaceCard :",
-    props.race.categorie
+    "🔄 Clic réinitialiser directement :",
+    categorie
   )
 
-  emit(
-    "reset",
-    props.race.categorie
-  )
+
+  const confirmed =
+    window.confirm(
+      `Voulez-vous vraiment réinitialiser la course ${props.race.label} ?\n\nLes arrivées et les résultats de cette course seront supprimés.`
+    )
+
+
+  if (
+    !confirmed
+  ) {
+
+    return
+
+  }
+
+
+  const sessionId =
+    raceStore.settings?.sessionId ||
+    "cross-2026"
+
 
   console.log(
-    "📤 Événement reset émis :",
-    props.race.categorie
+    "🔄 Réinitialisation directe :",
+    categorie,
+    "| Session :",
+    sessionId
   )
+
+
+  try {
+
+    const result =
+      await raceManager.resetRace(
+        categorie,
+        sessionId
+      )
+
+
+    console.log(
+      "🔄 Résultat resetRace :",
+      result
+    )
+
+
+    if (
+      !result?.success
+    ) {
+
+      window.alert(
+        result?.message ||
+        "Impossible de réinitialiser la course."
+      )
+
+      return
+
+    }
+
+
+    console.log(
+      "✅ Course réinitialisée :",
+      categorie
+    )
+
+  }
+
+  catch (
+    error
+  ) {
+
+    console.error(
+      "❌ Erreur pendant la réinitialisation :",
+      error
+    )
+
+
+    window.alert(
+      "Une erreur est survenue pendant la réinitialisation."
+    )
+
+  }
 
 }
+
 </script>
 
 <template>
