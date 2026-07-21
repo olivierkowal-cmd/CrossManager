@@ -165,6 +165,44 @@ export const useScannerStore = defineStore(
           participant.categorie
         )
 
+    console.log(
+  "📱 COURSE VUE PAR LE TÉLÉPHONE AU SCAN :",
+  {
+    participantCategorie:
+      participant.categorie,
+
+    raceFound:
+      !!race,
+
+    raceCategorie:
+      race?.categorie,
+
+    status:
+      race?.status,
+
+    startTime:
+      race?.startTime,
+
+    arrivals:
+      race?.arrivals,
+
+    participants:
+      race?.participants,
+  }
+)
+
+console.log(
+  "📱 TOUTES LES COURSES DU RACEMANAGER :",
+  raceManager.races.map(
+    r => ({
+      categorie: r.categorie,
+      status: r.status,
+      startTime: r.startTime,
+      arrivals: r.arrivals,
+      participants: r.participants,
+    })
+  )
+)    
 
       if (
         !race
