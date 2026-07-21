@@ -188,6 +188,53 @@ export const useFirebaseStore =
               races.value
             )
 
+                      // ==================================================
+          // RECALCULER LES PARTICIPANTS PAR COURSE
+          // ==================================================
+          //
+          // RaceStore contient la liste officielle des élèves.
+          // On recalcule donc ici le nombre réel d'élèves
+          // pour chaque catégorie.
+          //
+          // Cela évite :
+          //
+          // 1G : 2 arrivées / 0 participant
+          //
+          // alors qu'il existe réellement 2 élèves en 1G.
+          // ==================================================
+
+          raceManager.races.forEach(
+            race => {
+
+              const total =
+                raceStore.participants.filter(
+                  participant =>
+
+                    participant.categorie ===
+                    race.categorie
+
+                ).length
+
+
+              raceManager.setParticipants(
+                race.categorie,
+                total
+              )
+
+
+              console.log(
+
+                "👥 Participants RaceManager :",
+
+                race.categorie,
+
+                total
+
+              )
+
+            }
+          )
+
 
           // ==================================================
           // ÉCOUTE DES ARRIVÉES
@@ -215,6 +262,36 @@ export const useFirebaseStore =
                     data
                   )
 
+                                  // ============================================
+                // GARANTIR LE NOMBRE RÉEL DE PARTICIPANTS
+                // ============================================
+
+                raceManager.races.forEach(
+                  race => {
+
+                    const total =
+                      raceStore.participants.filter(
+                        participant =>
+
+                          participant.categorie ===
+                          race.categorie
+
+                      ).length
+
+
+                    raceManager.setParticipants(
+                      race.categorie,
+                      total
+                    )
+
+                  }
+                )
+
+
+                // Vérifier immédiatement si une course
+                // doit être terminée.
+
+                raceManager.checkAutomaticFinishes()
 
                 console.log(
                   "🏁 Arrivées Firebase synchronisées :",
