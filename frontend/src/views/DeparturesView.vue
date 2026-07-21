@@ -43,30 +43,45 @@ const races =
 // DÉMARRER UNE COURSE
 // ==================================================
 
-async function start(
-  categorie
-) {
+async function start(categorie) {
 
   const total =
     raceStore.participants.filter(
       participant =>
-        participant.categorie ===
-        categorie
+        participant.categorie === categorie
     ).length
 
+  console.log(
+    "👥 Participants au départ :",
+    categorie,
+    total
+  )
 
   raceManager.setParticipants(
     categorie,
     total
   )
 
+  const race =
+    raceManager.getRace(
+      categorie
+    )
+
+  if (
+    race
+  ) {
+
+    await raceManager.syncRaceToFirebase(
+      race
+    )
+
+  }
 
   await raceManager.startCountdown(
     categorie
   )
 
 }
-
 
 // ==================================================
 // RÉINITIALISER UNE COURSE
