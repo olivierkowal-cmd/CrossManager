@@ -11,7 +11,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   "start",
-  "reset-race",
+  "reset",
 ])
 
 function startRace() {
@@ -29,12 +29,12 @@ function resetRace() {
   )
 
   emit(
-    "reset-race",
+    "reset",
     props.race.categorie
   )
 
   console.log(
-    "📤 Événement reset-race émis :",
+    "📤 Événement reset émis :",
     props.race.categorie
   )
 

@@ -253,7 +253,7 @@ async function resetRace(
 
       @start="start"
 
-      @reset-race="resetRace"
+      @reset="resetRace"
 
     />
 
