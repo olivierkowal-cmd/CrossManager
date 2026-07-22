@@ -67,6 +67,78 @@ const filterPresence =
 
 
 // ==================================================
+// TRI PROFESSIONNEL DU TABLEAU
+// ==================================================
+
+const sortKey =
+  ref("dossard")
+
+const sortDirection =
+  ref("asc")
+
+
+// ==================================================
+// CHANGER LE TRI
+// ==================================================
+
+function setSort(
+  key
+) {
+
+  // Même colonne :
+  // on inverse simplement le sens.
+
+  if (
+    sortKey.value === key
+  ) {
+
+    sortDirection.value =
+      sortDirection.value === "asc"
+        ? "desc"
+        : "asc"
+
+    return
+
+  }
+
+
+  // Nouvelle colonne :
+  // on commence en ordre croissant.
+
+  sortKey.value =
+    key
+
+  sortDirection.value =
+    "asc"
+
+}
+
+
+// ==================================================
+// ICÔNE DU TRI
+// ==================================================
+
+function sortIcon(
+  key
+) {
+
+  if (
+    sortKey.value !== key
+  ) {
+
+    return "↕"
+
+  }
+
+
+  return sortDirection.value === "asc"
+    ? "↑"
+    : "↓"
+
+}
+
+
+// ==================================================
 // SÉLECTION MULTIPLE
 // ==================================================
 
@@ -150,7 +222,17 @@ const classes =
 
       ),
 
-    ].sort()
+    ].sort(
+      (a, b) =>
+        String(a).localeCompare(
+          String(b),
+          "fr",
+          {
+            sensitivity: "base",
+            numeric: true,
+          }
+        )
+    )
 
   })
 
@@ -177,13 +259,23 @@ const categories =
 
       ),
 
-    ].sort()
+    ].sort(
+      (a, b) =>
+        String(a).localeCompare(
+          String(b),
+          "fr",
+          {
+            sensitivity: "base",
+            numeric: true,
+          }
+        )
+    )
 
   })
 
 
 // ==================================================
-// PARTICIPANTS FILTRÉS
+// PARTICIPANTS FILTRÉS ET TRIÉS
 // ==================================================
 
 const filteredParticipants =
@@ -191,12 +283,16 @@ const filteredParticipants =
 
     return raceStore.participants
 
+      // ==================================================
+      // FILTRES
+      // ==================================================
+
       .filter(
         participant => {
 
-          // --------------------------
-          // Recherche
-          // --------------------------
+          // ----------------------------------------------
+          // RECHERCHE GLOBALE
+          // ----------------------------------------------
 
           if (
             searchQuery.value
@@ -207,35 +303,61 @@ const filteredParticipants =
                 .toLowerCase()
                 .trim()
 
+
             const nom =
               String(
                 participant.nom ??
                 ""
-              ).toLowerCase()
+              )
+                .toLowerCase()
+
 
             const prenom =
               String(
                 participant.prenom ??
                 ""
-              ).toLowerCase()
+              )
+                .toLowerCase()
+
 
             const dossard =
               String(
                 participant.dossard ??
                 ""
-              ).toLowerCase()
+              )
+                .toLowerCase()
+
 
             const classe =
               String(
                 participant.classe ??
                 ""
-              ).toLowerCase()
+              )
+                .toLowerCase()
+
 
             const categorie =
               String(
                 participant.categorie ??
                 ""
-              ).toLowerCase()
+              )
+                .toLowerCase()
+
+
+            const sexe =
+              String(
+                participant.sexe ??
+                ""
+              )
+                .toLowerCase()
+
+
+            const qr =
+              String(
+                participant.qr ??
+                ""
+              )
+                .toLowerCase()
 
 
             if (
@@ -248,7 +370,11 @@ const filteredParticipants =
 
               !classe.includes(query) &&
 
-              !categorie.includes(query)
+              !categorie.includes(query) &&
+
+              !sexe.includes(query) &&
+
+              !qr.includes(query)
 
             ) {
 
@@ -259,9 +385,9 @@ const filteredParticipants =
           }
 
 
-          // --------------------------
-          // Classe
-          // --------------------------
+          // ----------------------------------------------
+          // CLASSE
+          // ----------------------------------------------
 
           if (
 
@@ -277,9 +403,9 @@ const filteredParticipants =
           }
 
 
-          // --------------------------
-          // Catégorie
-          // --------------------------
+          // ----------------------------------------------
+          // CATÉGORIE
+          // ----------------------------------------------
 
           if (
 
@@ -295,9 +421,9 @@ const filteredParticipants =
           }
 
 
-          // --------------------------
-          // Sexe
-          // --------------------------
+          // ----------------------------------------------
+          // SEXE
+          // ----------------------------------------------
 
           if (
 
@@ -313,9 +439,9 @@ const filteredParticipants =
           }
 
 
-          // --------------------------
-          // Présence
-          // --------------------------
+          // ----------------------------------------------
+          // PRÉSENTS
+          // ----------------------------------------------
 
           if (
             filterPresence.value ===
@@ -332,6 +458,10 @@ const filteredParticipants =
 
           }
 
+
+          // ----------------------------------------------
+          // ABSENTS
+          // ----------------------------------------------
 
           if (
             filterPresence.value ===
@@ -354,23 +484,107 @@ const filteredParticipants =
         }
       )
 
+
+      // ==================================================
+      // TRI
+      // ==================================================
+
       .sort(
         (a, b) => {
 
-          return (
-            Number(
-              a.dossard
-            ) -
-            Number(
-              b.dossard
-            )
-          )
+          const key =
+            sortKey.value
+
+
+          let valueA =
+            a[key] ?? ""
+
+          let valueB =
+            b[key] ?? ""
+
+
+          // ----------------------------------------------
+          // DOSSARD = TRI NUMÉRIQUE
+          // ----------------------------------------------
+
+          if (
+            key === "dossard"
+          ) {
+
+            valueA =
+              Number(valueA) || 0
+
+            valueB =
+              Number(valueB) || 0
+
+
+            return sortDirection.value === "asc"
+              ? valueA - valueB
+              : valueB - valueA
+
+          }
+
+
+          // ----------------------------------------------
+          // PRÉSENCE = TRI BOOLÉEN
+          // ----------------------------------------------
+
+          if (
+            key === "present"
+          ) {
+
+            valueA =
+              Boolean(valueA)
+                ? 1
+                : 0
+
+            valueB =
+              Boolean(valueB)
+                ? 1
+                : 0
+
+
+            return sortDirection.value === "asc"
+              ? valueA - valueB
+              : valueB - valueA
+
+          }
+
+
+          // ----------------------------------------------
+          // AUTRES COLONNES = TRI TEXTE
+          // ----------------------------------------------
+
+          const comparison =
+            String(valueA)
+              .localeCompare(
+                String(valueB),
+                "fr",
+                {
+                  sensitivity:
+                    "base",
+
+                  numeric:
+                    true,
+                }
+              )
+
+
+          return sortDirection.value === "asc"
+            ? comparison
+            : -comparison
 
         }
       )
 
   })
 
+
+// ==================================================
+// FIN PARTIE 1
+// La PARTIE 2 continue directement ici.
+// NE PAS mettre </script> maintenant.
+// ==================================================
 
 // ==================================================
 // TOUS LES PARTICIPANTS FILTRÉS SÉLECTIONNÉS
@@ -386,6 +600,7 @@ const allFilteredSelected =
       return false
 
     }
+
 
     return filteredParticipants.value.every(
       participant =>
@@ -411,9 +626,8 @@ function toggleSelectAll() {
     )
 
 
-  // Si tous les participants filtrés
-  // sont déjà sélectionnés,
-  // on les retire de la sélection.
+  // Si tous les participants actuellement affichés
+  // sont sélectionnés, on les désélectionne.
 
   if (
     allFilteredSelected.value
@@ -432,8 +646,8 @@ function toggleSelectAll() {
   }
 
 
-  // Sinon on ajoute tous
-  // les participants filtrés.
+  // Sinon on ajoute tous les participants affichés
+  // à la sélection existante.
 
   const ids =
     new Set(
@@ -659,6 +873,7 @@ function openCreateDialog() {
   formError.value =
     ""
 
+
   Object.assign(
     form,
     emptyForm()
@@ -677,7 +892,7 @@ function openCreateDialog() {
 
 
 // ==================================================
-// OUVRIR MODIFICATION
+// OUVRIR MODIFICATION PARTICIPANT
 // ==================================================
 
 function openEditDialog(
@@ -736,7 +951,7 @@ function openEditDialog(
 
 
 // ==================================================
-// FERMER MODALE
+// FERMER LA MODALE
 // ==================================================
 
 function closeDialog() {
@@ -749,6 +964,7 @@ function closeDialog() {
 
   formError.value =
     ""
+
 
   Object.assign(
     form,
@@ -795,7 +1011,7 @@ function updateAutomaticCategory() {
 
 
 // ==================================================
-// VALIDATION FORMULAIRE
+// VALIDATION DU FORMULAIRE
 // ==================================================
 
 function validateForm() {
@@ -803,6 +1019,10 @@ function validateForm() {
   formError.value =
     ""
 
+
+  // ----------------------------------------------
+  // NOM
+  // ----------------------------------------------
 
   if (
     !String(
@@ -818,6 +1038,10 @@ function validateForm() {
   }
 
 
+  // ----------------------------------------------
+  // PRÉNOM
+  // ----------------------------------------------
+
   if (
     !String(
       form.prenom
@@ -831,6 +1055,10 @@ function validateForm() {
 
   }
 
+
+  // ----------------------------------------------
+  // DOSSARD
+  // ----------------------------------------------
 
   if (
     !String(
@@ -846,6 +1074,10 @@ function validateForm() {
   }
 
 
+  // ----------------------------------------------
+  // CLASSE
+  // ----------------------------------------------
+
   if (
     !String(
       form.classe
@@ -859,6 +1091,10 @@ function validateForm() {
 
   }
 
+
+  // ----------------------------------------------
+  // SEXE
+  // ----------------------------------------------
 
   if (
     !form.sexe
@@ -957,6 +1193,10 @@ function submitForm() {
   let result
 
 
+  // ----------------------------------------------
+  // MODIFICATION
+  // ----------------------------------------------
+
   if (
     editingParticipant.value
   ) {
@@ -973,7 +1213,14 @@ function submitForm() {
 
         })
 
-  } else {
+  }
+
+
+  // ----------------------------------------------
+  // AJOUT
+  // ----------------------------------------------
+
+  else {
 
     result =
       raceStore
@@ -1005,7 +1252,7 @@ function submitForm() {
 
 
 // ==================================================
-// SUPPRIMER PARTICIPANT
+// SUPPRIMER UN PARTICIPANT
 // ==================================================
 
 function removeParticipant(
@@ -1045,13 +1292,15 @@ function removeParticipant(
     !result?.success
   ) {
 
-    alert(
+    window.alert(
 
       result?.message ||
 
       "Impossible de supprimer le participant."
 
     )
+
+    return
 
   }
 
@@ -1066,7 +1315,7 @@ function removeParticipant(
 
 
 // ==================================================
-// CHANGER PRÉSENCE
+// CHANGER LA PRÉSENCE
 // ==================================================
 
 function togglePresence(
@@ -1087,7 +1336,7 @@ function togglePresence(
 
 
 // ==================================================
-// IMPORT EXCEL
+// OUVRIR L'IMPORT EXCEL
 // ==================================================
 
 function openExcelImport() {
@@ -1142,8 +1391,11 @@ async function handleExcelSelection(
     importMessage.value =
       `${count} participant(s) importé(s) avec succès.`
 
+  }
 
-  } catch (error) {
+  catch (
+    error
+  ) {
 
     console.error(
       "Erreur import Excel :",
@@ -1155,11 +1407,13 @@ async function handleExcelSelection(
       ""
 
 
-    alert(
+    window.alert(
       "Impossible d'importer le fichier Excel. Vérifiez le format du fichier."
     )
 
-  } finally {
+  }
+
+  finally {
 
     isImporting.value =
       false
@@ -1174,7 +1428,7 @@ async function handleExcelSelection(
 
 
 // ==================================================
-// RÉINITIALISER FILTRES
+// RÉINITIALISER LES FILTRES
 // ==================================================
 
 function resetFilters() {
@@ -1195,6 +1449,16 @@ function resetFilters() {
     ""
 
 }
+
+
+// ==================================================
+// FIN PARTIE 2
+//
+// La PARTIE 3 commencera ici avec </script>
+// puis le début du <template> et surtout
+// les en-têtes de colonnes cliquables.
+// ==================================================
+
 </script>
 
 
@@ -1233,7 +1497,7 @@ function resetFilters() {
           <p
             class="mt-2 text-sm text-slate-500"
           >
-            Ajoutez, recherchez et gérez les coureurs de votre événement.
+            Ajoutez, recherchez, triez et gérez les coureurs de votre événement.
           </p>
 
         </div>
@@ -1331,6 +1595,7 @@ function resetFilters() {
 
           </div>
 
+
           <div
             class="text-3xl"
           >
@@ -1356,6 +1621,8 @@ function resetFilters() {
         class="grid gap-4 md:grid-cols-2 xl:grid-cols-6"
       >
 
+        <!-- RECHERCHE -->
+
         <div
           class="md:col-span-2"
         >
@@ -1369,12 +1636,14 @@ function resetFilters() {
           <input
             v-model="searchQuery"
             type="search"
-            placeholder="Nom, prénom, dossard, classe..."
-            class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-sky-500"
+            placeholder="Nom, prénom, dossard, classe, QR..."
+            class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
           />
 
         </div>
 
+
+        <!-- CLASSE -->
 
         <div>
 
@@ -1406,6 +1675,8 @@ function resetFilters() {
         </div>
 
 
+        <!-- CATÉGORIE -->
+
         <div>
 
           <label
@@ -1436,6 +1707,8 @@ function resetFilters() {
         </div>
 
 
+        <!-- SEXE -->
+
         <div>
 
           <label
@@ -1465,6 +1738,8 @@ function resetFilters() {
 
         </div>
 
+
+        <!-- PRÉSENCE -->
 
         <div>
 
@@ -1505,11 +1780,21 @@ function resetFilters() {
         <p
           class="text-sm text-slate-500"
         >
-          {{ filteredParticipants.length }}
-          participant(s) affiché(s)
-          sur
-          {{ raceStore.participantCount }}
+          <span
+            class="font-semibold text-slate-700"
+          >
+            {{ filteredParticipants.length }}
+          </span>
+
+          participant(s) affiché(s) sur
+
+          <span
+            class="font-semibold text-slate-700"
+          >
+            {{ raceStore.participantCount }}
+          </span>
         </p>
+
 
         <button
           type="button"
@@ -1545,6 +1830,7 @@ function resetFilters() {
             {{ selectedParticipants.length }}
             participant(s) sélectionné(s)
           </p>
+
 
           <button
             type="button"
@@ -1595,12 +1881,34 @@ function resetFilters() {
 
 
     <!-- ==================================================
-         TABLEAU
+         TABLEAU PROFESSIONNEL
     =================================================== -->
 
     <div
       class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
     >
+
+      <!-- BARRE D'INFORMATION DU TABLEAU -->
+
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 py-3"
+      >
+
+        <p
+          class="text-sm font-semibold text-slate-700"
+        >
+          Liste des participants
+        </p>
+
+
+        <p
+          class="text-xs text-slate-500"
+        >
+          Cliquez sur un titre de colonne pour modifier le tri.
+        </p>
+
+      </div>
+
 
       <div
         class="overflow-x-auto"
@@ -1609,6 +1917,10 @@ function resetFilters() {
         <table
           class="min-w-full divide-y divide-slate-200 text-left text-sm"
         >
+
+          <!-- ==================================================
+               EN-TÊTE DU TABLEAU
+          =================================================== -->
 
           <thead
             class="bg-slate-50"
@@ -1633,56 +1945,236 @@ function resetFilters() {
               </th>
 
 
-              <th
-                class="px-4 py-3 font-semibold text-slate-700"
-              >
-                Dossard
-              </th>
+              <!-- DOSSARD -->
 
               <th
-                class="px-4 py-3 font-semibold text-slate-700"
+                class="whitespace-nowrap px-4 py-3"
               >
-                Nom
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('dossard')"
+                >
+
+                  <span>
+                    Dossard
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'dossard'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("dossard") }}
+                  </span>
+
+                </button>
+
               </th>
 
-              <th
-                class="px-4 py-3 font-semibold text-slate-700"
-              >
-                Prénom
-              </th>
+
+              <!-- NOM -->
 
               <th
-                class="px-4 py-3 font-semibold text-slate-700"
+                class="whitespace-nowrap px-4 py-3"
               >
-                Classe
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('nom')"
+                >
+
+                  <span>
+                    Nom
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'nom'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("nom") }}
+                  </span>
+
+                </button>
+
               </th>
 
-              <th
-                class="px-4 py-3 font-semibold text-slate-700"
-              >
-                Sexe
-              </th>
+
+              <!-- PRÉNOM -->
 
               <th
-                class="px-4 py-3 font-semibold text-slate-700"
+                class="whitespace-nowrap px-4 py-3"
               >
-                Catégorie
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('prenom')"
+                >
+
+                  <span>
+                    Prénom
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'prenom'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("prenom") }}
+                  </span>
+
+                </button>
+
               </th>
 
-              <th
-                class="px-4 py-3 font-semibold text-slate-700"
-              >
-                Présence
-              </th>
+
+              <!-- CLASSE -->
 
               <th
-                class="px-4 py-3 font-semibold text-slate-700"
+                class="whitespace-nowrap px-4 py-3"
+              >
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('classe')"
+                >
+
+                  <span>
+                    Classe
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'classe'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("classe") }}
+                  </span>
+
+                </button>
+
+              </th>
+
+
+              <!-- SEXE -->
+
+              <th
+                class="whitespace-nowrap px-4 py-3"
+              >
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('sexe')"
+                >
+
+                  <span>
+                    Sexe
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'sexe'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("sexe") }}
+                  </span>
+
+                </button>
+
+              </th>
+
+
+              <!-- CATÉGORIE -->
+
+              <th
+                class="whitespace-nowrap px-4 py-3"
+              >
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('categorie')"
+                >
+
+                  <span>
+                    Catégorie
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'categorie'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("categorie") }}
+                  </span>
+
+                </button>
+
+              </th>
+
+
+              <!-- PRÉSENCE -->
+
+              <th
+                class="whitespace-nowrap px-4 py-3"
+              >
+
+                <button
+                  type="button"
+                  class="group flex items-center gap-2 font-semibold text-slate-700 transition hover:text-sky-600"
+                  @click="setSort('present')"
+                >
+
+                  <span>
+                    Présence
+                  </span>
+
+                  <span
+                    :class="
+                      sortKey === 'present'
+                        ? 'text-sky-600'
+                        : 'text-slate-400'
+                    "
+                  >
+                    {{ sortIcon("present") }}
+                  </span>
+
+                </button>
+
+              </th>
+
+
+              <!-- QR -->
+
+              <th
+                class="whitespace-nowrap px-4 py-3 font-semibold text-slate-700"
               >
                 QR
               </th>
 
+
+              <!-- ACTIONS -->
+
               <th
-                class="px-4 py-3 font-semibold text-slate-700"
+                class="whitespace-nowrap px-4 py-3 font-semibold text-slate-700"
               >
                 Actions
               </th>
@@ -1691,6 +2183,10 @@ function resetFilters() {
 
           </thead>
 
+
+          <!-- ==================================================
+               CORPS DU TABLEAU
+          =================================================== -->
 
           <tbody
             class="divide-y divide-slate-100 bg-white"
@@ -1726,11 +2222,11 @@ function resetFilters() {
               <!-- DOSSARD -->
 
               <td
-                class="px-4 py-3"
+                class="whitespace-nowrap px-4 py-3"
               >
 
                 <span
-                  class="rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-700"
+                  class="inline-flex min-w-12 justify-center rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-700"
                 >
                   {{ participant.dossard }}
                 </span>
@@ -1741,7 +2237,7 @@ function resetFilters() {
               <!-- NOM -->
 
               <td
-                class="px-4 py-3 font-semibold text-slate-900"
+                class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900"
               >
                 {{ participant.nom }}
               </td>
@@ -1750,7 +2246,7 @@ function resetFilters() {
               <!-- PRÉNOM -->
 
               <td
-                class="px-4 py-3 text-slate-700"
+                class="whitespace-nowrap px-4 py-3 text-slate-700"
               >
                 {{ participant.prenom }}
               </td>
@@ -1759,7 +2255,7 @@ function resetFilters() {
               <!-- CLASSE -->
 
               <td
-                class="px-4 py-3 text-slate-700"
+                class="whitespace-nowrap px-4 py-3 text-slate-700"
               >
                 {{ participant.classe }}
               </td>
@@ -1768,7 +2264,7 @@ function resetFilters() {
               <!-- SEXE -->
 
               <td
-                class="px-4 py-3"
+                class="whitespace-nowrap px-4 py-3"
               >
 
                 <span
@@ -1783,7 +2279,7 @@ function resetFilters() {
               <!-- CATÉGORIE -->
 
               <td
-                class="px-4 py-3"
+                class="whitespace-nowrap px-4 py-3"
               >
 
                 <span
@@ -1798,15 +2294,15 @@ function resetFilters() {
               <!-- PRÉSENCE -->
 
               <td
-                class="px-4 py-3"
+                class="whitespace-nowrap px-4 py-3"
               >
 
                 <button
                   type="button"
                   :class="
                     participant.present
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   "
                   class="rounded-full px-3 py-1.5 text-xs font-semibold transition"
                   @click="togglePresence(participant)"
@@ -1826,16 +2322,22 @@ function resetFilters() {
               <!-- QR -->
 
               <td
-                class="px-4 py-3 text-xs font-medium text-slate-500"
+                class="whitespace-nowrap px-4 py-3"
               >
-                {{ participant.qr }}
+
+                <span
+                  class="rounded-lg bg-slate-100 px-2.5 py-1.5 font-mono text-xs font-medium text-slate-600"
+                >
+                  {{ participant.qr }}
+                </span>
+
               </td>
 
 
               <!-- ACTIONS -->
 
               <td
-                class="px-4 py-3"
+                class="whitespace-nowrap px-4 py-3"
               >
 
                 <div
@@ -1844,11 +2346,12 @@ function resetFilters() {
 
                   <button
                     type="button"
-                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
                     @click="openEditDialog(participant)"
                   >
                     ✏️ Éditer
                   </button>
+
 
                   <button
                     type="button"
@@ -1865,7 +2368,9 @@ function resetFilters() {
             </tr>
 
 
-            <!-- AUCUN RÉSULTAT -->
+            <!-- ==================================================
+                 AUCUN RÉSULTAT
+            =================================================== -->
 
             <tr
               v-if="filteredParticipants.length === 0"
@@ -1908,27 +2413,43 @@ function resetFilters() {
 
 
     <!-- ==================================================
-         MODALE AJOUT / MODIFICATION
+         FIN PARTIE 3
+
+         NE PAS mettre </section> ou </template> ici.
+
+         La PARTIE 4 continue directement avec :
+         - modale ajout / modification
+         - aperçu QR
+         - boutons enregistrer / annuler
+         - fermeture du template
+    =================================================== -->
+
+        <!-- ==================================================
+         MODALE AJOUT / MODIFICATION PARTICIPANT
     =================================================== -->
 
     <div
       v-if="isDialogOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
       @click.self="closeDialog"
     >
 
       <div
-        class="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl"
+        class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
       >
 
+        <!-- ==================================================
+             EN-TÊTE MODALE
+        =================================================== -->
+
         <div
-          class="flex items-start justify-between gap-4"
+          class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5"
         >
 
           <div>
 
             <p
-              class="text-sm font-medium uppercase tracking-[0.3em] text-sky-600"
+              class="text-sm font-medium uppercase tracking-[0.25em] text-sky-600"
             >
               Participant
             </p>
@@ -1936,302 +2457,482 @@ function resetFilters() {
             <h3
               class="mt-2 text-xl font-semibold text-slate-900"
             >
-
               {{
                 editingParticipant
                   ? "Modifier le participant"
                   : "Ajouter un participant"
               }}
-
             </h3>
+
+            <p
+              class="mt-1 text-sm text-slate-500"
+            >
+              {{
+                editingParticipant
+                  ? "Modifiez les informations puis enregistrez."
+                  : "Complétez les informations du nouveau coureur."
+              }}
+            </p>
 
           </div>
 
 
           <button
             type="button"
-            class="text-sm font-semibold text-slate-500 hover:text-slate-700"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xl font-semibold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+            title="Fermer"
             @click="closeDialog"
           >
-            ✕ Fermer
+            ×
           </button>
 
         </div>
 
 
-        <div
-          v-if="formError"
-          class="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
-        >
-          {{ formError }}
-        </div>
+        <!-- ==================================================
+             FORMULAIRE
+        =================================================== -->
 
-
-        <div
-          class="mt-6 grid gap-4 md:grid-cols-2"
+        <form
+          class="space-y-6 p-6"
+          @submit.prevent="submitForm"
         >
 
-          <!-- DOSSARD -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Dossard
-            </span>
-
-            <input
-              v-model="form.dossard"
-              type="number"
-              min="1"
-              class="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-            />
-
-            <span
-              class="mt-1 block text-xs text-slate-400"
-            >
-              Le QR Code sera généré automatiquement.
-            </span>
-
-          </label>
-
-
-          <!-- NOM -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Nom *
-            </span>
-
-            <input
-              v-model="form.nom"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-            />
-
-          </label>
-
-
-          <!-- PRÉNOM -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Prénom *
-            </span>
-
-            <input
-              v-model="form.prenom"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-            />
-
-          </label>
-
-
-          <!-- SEXE -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Sexe
-            </span>
-
-            <select
-              v-model="form.sexe"
-              class="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-              @change="updateAutomaticCategory"
-            >
-
-              <option value="F">
-                Fille
-              </option>
-
-              <option value="G">
-                Garçon
-              </option>
-
-            </select>
-
-          </label>
-
-
-          <!-- NIVEAU -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Niveau
-            </span>
-
-            <input
-              v-model="form.niveau"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5"
-              readonly
-            />
-
-          </label>
-
-
-          <!-- CLASSE -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Classe *
-            </span>
-
-            <input
-              v-model="form.classe"
-              type="text"
-              placeholder="Exemple : 3A"
-              class="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-              @input="updateAutomaticCategory"
-            />
-
-          </label>
-
-
-          <!-- CATÉGORIE -->
-
-          <label
-            class="text-sm text-slate-700"
-          >
-
-            <span
-              class="mb-2 block font-medium"
-            >
-              Catégorie
-            </span>
-
-            <input
-              v-model="form.categorie"
-              type="text"
-              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5"
-              readonly
-            />
-
-            <span
-              class="mt-1 block text-xs text-slate-400"
-            >
-              Calculée automatiquement selon la classe et le sexe.
-            </span>
-
-          </label>
-
-
-          <!-- PRÉSENCE -->
+          <!-- MESSAGE ERREUR -->
 
           <div
-            class="flex items-center"
+            v-if="formError"
+            class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+          >
+            {{ formError }}
+          </div>
+
+
+          <!-- ==================================================
+               IDENTITÉ
+          =================================================== -->
+
+          <div>
+
+            <h4
+              class="text-sm font-bold uppercase tracking-wide text-slate-500"
+            >
+              Identité
+            </h4>
+
+
+            <div
+              class="mt-4 grid gap-4 sm:grid-cols-2"
+            >
+
+              <!-- NOM -->
+
+              <div>
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Nom
+                  <span class="text-rose-500">*</span>
+                </label>
+
+                <input
+                  v-model="form.nom"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Nom"
+                  class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                />
+
+              </div>
+
+
+              <!-- PRÉNOM -->
+
+              <div>
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Prénom
+                  <span class="text-rose-500">*</span>
+                </label>
+
+                <input
+                  v-model="form.prenom"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Prénom"
+                  class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ==================================================
+               COURSE
+          =================================================== -->
+
+          <div
+            class="border-t border-slate-200 pt-6"
+          >
+
+            <h4
+              class="text-sm font-bold uppercase tracking-wide text-slate-500"
+            >
+              Course
+            </h4>
+
+
+            <div
+              class="mt-4 grid gap-4 sm:grid-cols-2"
+            >
+
+              <!-- DOSSARD -->
+
+              <div>
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Dossard
+                  <span class="text-rose-500">*</span>
+                </label>
+
+                <input
+                  v-model="form.dossard"
+                  type="number"
+                  min="1"
+                  inputmode="numeric"
+                  placeholder="Numéro"
+                  class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                />
+
+              </div>
+
+
+              <!-- SEXE -->
+
+              <div>
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Sexe
+                  <span class="text-rose-500">*</span>
+                </label>
+
+                <select
+                  v-model="form.sexe"
+                  class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  @change="updateAutomaticCategory"
+                >
+
+                  <option value="F">
+                    Fille
+                  </option>
+
+                  <option value="G">
+                    Garçon
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <!-- CLASSE -->
+
+              <div>
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Classe
+                  <span class="text-rose-500">*</span>
+                </label>
+
+                <input
+                  v-model="form.classe"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="Ex. 1A"
+                  class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                  @input="updateAutomaticCategory"
+                />
+
+                <p
+                  class="mt-1 text-xs text-slate-400"
+                >
+                  Exemple : 1A, 2B, 3C...
+                </p>
+
+              </div>
+
+
+              <!-- NIVEAU -->
+
+              <div>
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Niveau
+                </label>
+
+                <input
+                  v-model="form.niveau"
+                  type="text"
+                  readonly
+                  class="mt-2 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600"
+                />
+
+                <p
+                  class="mt-1 text-xs text-slate-400"
+                >
+                  Calculé automatiquement depuis la classe.
+                </p>
+
+              </div>
+
+
+              <!-- CATÉGORIE -->
+
+              <div
+                class="sm:col-span-2"
+              >
+
+                <label
+                  class="block text-sm font-semibold text-slate-700"
+                >
+                  Catégorie
+                </label>
+
+                <div
+                  class="mt-2 flex min-h-[48px] items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3"
+                >
+
+                  <span
+                    v-if="form.categorie"
+                    class="rounded-full bg-indigo-100 px-3 py-1 text-sm font-bold text-indigo-700"
+                  >
+                    {{ form.categorie }}
+                  </span>
+
+                  <span
+                    v-else
+                    class="text-sm text-slate-400"
+                  >
+                    La catégorie sera calculée automatiquement.
+                  </span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ==================================================
+               PRÉSENCE
+          =================================================== -->
+
+          <div
+            class="border-t border-slate-200 pt-6"
           >
 
             <label
-              class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              class="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300"
             >
+
+              <div>
+
+                <p
+                  class="font-semibold text-slate-800"
+                >
+                  Participant présent
+                </p>
+
+                <p
+                  class="mt-1 text-sm text-slate-500"
+                >
+                  Indique si le participant est présent le jour de la course.
+                </p>
+
+              </div>
+
 
               <input
                 v-model="form.present"
                 type="checkbox"
-                class="h-5 w-5 rounded border-slate-300"
+                class="h-5 w-5 shrink-0 cursor-pointer rounded border-slate-300"
               />
-
-              <span
-                class="text-sm font-medium text-slate-700"
-              >
-                Participant présent
-              </span>
 
             </label>
 
           </div>
 
-        </div>
 
+          <!-- ==================================================
+               APERÇU
+          =================================================== -->
 
-        <!-- QR APERÇU -->
-
-        <div
-          v-if="form.dossard"
-          class="mt-6 rounded-2xl border border-sky-100 bg-sky-50 p-4"
-        >
-
-          <p
-            class="text-sm font-semibold text-sky-900"
-          >
-            QR Code associé
-          </p>
-
-          <p
-            class="mt-1 font-mono text-sm text-sky-700"
-          >
-            CM-{{
-              String(
-                form.dossard
-              ).padStart(
-                4,
-                "0"
-              )
-            }}
-          </p>
-
-        </div>
-
-
-        <!-- ACTIONS MODALE -->
-
-        <div
-          class="mt-6 flex justify-end gap-3"
-        >
-
-          <button
-            type="button"
-            class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            @click="closeDialog"
-          >
-            Annuler
-          </button>
-
-          <button
-            type="button"
-            class="rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
-            @click="submitForm"
+          <div
+            class="border-t border-slate-200 pt-6"
           >
 
-            {{
-              editingParticipant
-                ? "Enregistrer les modifications"
-                : "Ajouter le participant"
-            }}
+            <h4
+              class="text-sm font-bold uppercase tracking-wide text-slate-500"
+            >
+              Aperçu
+            </h4>
 
-          </button>
 
-        </div>
+            <div
+              class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-5"
+            >
+
+              <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+
+                <div>
+
+                  <p
+                    class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+                  >
+                    Participant
+                  </p>
+
+                  <p
+                    class="mt-1 text-lg font-bold text-slate-900"
+                  >
+                    {{
+                      form.prenom || "Prénom"
+                    }}
+                    {{
+                      form.nom || "Nom"
+                    }}
+                  </p>
+
+
+                  <div
+                    class="mt-3 flex flex-wrap gap-2"
+                  >
+
+                    <span
+                      class="rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-sky-700 shadow-sm"
+                    >
+                      Dossard
+                      {{ form.dossard || "—" }}
+                    </span>
+
+                    <span
+                      class="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm"
+                    >
+                      {{ form.classe || "Classe" }}
+                    </span>
+
+                    <span
+                      class="rounded-lg bg-indigo-100 px-3 py-1.5 text-sm font-semibold text-indigo-700"
+                    >
+                      {{ form.categorie || "Catégorie" }}
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <div
+                  class="shrink-0"
+                >
+
+                  <span
+                    :class="
+                      form.present
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-200 text-slate-600'
+                    "
+                    class="inline-flex rounded-full px-3 py-1.5 text-xs font-bold"
+                  >
+                    {{
+                      form.present
+                        ? "✓ Présent"
+                        : "Absent"
+                    }}
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <!-- QR EXISTANT -->
+
+              <div
+                v-if="editingParticipant?.qr"
+                class="mt-5 border-t border-slate-200 pt-4"
+              >
+
+                <p
+                  class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+                >
+                  QR CrossManager
+                </p>
+
+                <p
+                  class="mt-2 inline-block rounded-lg bg-white px-3 py-2 font-mono text-sm font-semibold text-slate-700 shadow-sm"
+                >
+                  {{ editingParticipant.qr }}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ==================================================
+               BOUTONS
+          =================================================== -->
+
+          <div
+            class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end"
+          >
+
+            <button
+              type="button"
+              class="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              @click="closeDialog"
+            >
+              Annuler
+            </button>
+
+
+            <button
+              type="submit"
+              class="rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+            >
+
+              {{
+                editingParticipant
+                  ? "💾 Enregistrer les modifications"
+                  : "➕ Ajouter le participant"
+              }}
+
+            </button>
+
+          </div>
+
+        </form>
 
       </div>
 
