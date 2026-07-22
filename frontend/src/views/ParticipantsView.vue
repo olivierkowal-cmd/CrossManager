@@ -583,7 +583,6 @@ const filteredParticipants =
 // ==================================================
 // FIN PARTIE 1
 // La PARTIE 2 continue directement ici.
-// NE PAS mettre </script> maintenant.
 // ==================================================
 
 // ==================================================
@@ -1449,15 +1448,6 @@ function resetFilters() {
     ""
 
 }
-
-
-// ==================================================
-// FIN PARTIE 2
-//
-// La PARTIE 3 commencera ici avec </script>
-// puis le début du <template> et surtout
-// les en-têtes de colonnes cliquables.
-// ==================================================
 
 </script>
 
@@ -2415,7 +2405,6 @@ function resetFilters() {
     <!-- ==================================================
          FIN PARTIE 3
 
-         NE PAS mettre </section> ou </template> ici.
 
          La PARTIE 4 continue directement avec :
          - modale ajout / modification
