@@ -2,131 +2,239 @@
 import { computed } from "vue"
 import { useScannerStore } from "../../stores/scannerStore"
 
-const scannerStore = useScannerStore()
 
-const totalScans = computed(() => scannerStore.arrivals.length)
+// ==================================================
+// STORE
+// ==================================================
 
-const duplicates = computed(() => {
+const scannerStore =
+  useScannerStore()
 
-  return scannerStore.arrivals.filter(a => a.duplicate).length
 
-})
+// ==================================================
+// ARRIVÉES VALIDÉES
+// ==================================================
 
-const errors = computed(() => {
+const totalScans =
+  computed(() => {
 
-  return scannerStore.arrivals.filter(a => a.error).length
+    return scannerStore.arrivals.length
 
-})
+  })
 
-const averageTime = computed(() => {
 
-  if (!scannerStore.arrivals.length) {
+// ==================================================
+// DOUBLONS
+// ==================================================
 
-    return "--"
+const duplicates =
+  computed(() => {
 
-  }
+    return scannerStore.duplicateCount
 
-  const total = scannerStore.arrivals.reduce(
+  })
 
-    (sum, arrival) => sum + arrival.elapsedTime,
 
-    0
+// ==================================================
+// ERREURS
+// ==================================================
 
-  )
+const errors =
+  computed(() => {
 
-  const average = Math.floor(total / scannerStore.arrivals.length)
+    return scannerStore.errorCount
 
-  const minutes = Math.floor(average / 60000)
+  })
 
-  const seconds = Math.floor((average % 60000) / 1000)
 
-  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`
+// ==================================================
+// DERNIÈRE ARRIVÉE
+// ==================================================
 
-})
+const lastArrival =
+  computed(() => {
+
+    return scannerStore.lastArrival
+
+  })
+
+
+// ==================================================
+// DERNIER DOSSARD
+// ==================================================
+
+const lastBib =
+  computed(() => {
+
+    return (
+      lastArrival.value?.participant?.dossard ??
+      lastArrival.value?.dossard ??
+      "--"
+    )
+
+  })
+
+
+// ==================================================
+// DERNIER SCANNER UTILISÉ
+// ==================================================
+
+const lastScanner =
+  computed(() => {
+
+    return (
+      lastArrival.value?.scanner ??
+      "--"
+    )
+
+  })
+
 </script>
+
 
 <template>
 
-<div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+  <div
+    class="rounded-3xl border border-slate-200 bg-white shadow-sm"
+  >
 
-<div class="border-b border-slate-200 p-5">
+    <!-- ==================================================
+         TITRE
+    =================================================== -->
 
-<h2 class="text-xl font-bold">
+    <div
+      class="border-b border-slate-200 p-5"
+    >
 
-Statistiques
+      <h2
+        class="text-xl font-bold"
+      >
+        Scanner
+      </h2>
 
-</h2>
+      <p
+        class="mt-1 text-sm text-slate-500"
+      >
+        Activité de la session
+      </p>
 
-</div>
+    </div>
 
-<div class="grid grid-cols-2 gap-4 p-6">
 
-<div class="rounded-2xl bg-sky-50 p-5 text-center">
+    <!-- ==================================================
+         INDICATEURS
+    =================================================== -->
 
-<p class="text-sm text-slate-500">
+    <div
+      class="grid grid-cols-2 gap-4 p-6 lg:grid-cols-3"
+    >
 
-Scans
+      <!-- ARRIVÉES -->
 
-</p>
+      <div
+        class="rounded-2xl bg-sky-50 p-5 text-center"
+      >
 
-<p class="mt-2 text-3xl font-bold text-sky-700">
+        <p
+          class="text-sm text-slate-500"
+        >
+          Arrivées validées
+        </p>
 
-{{ totalScans }}
+        <p
+          class="mt-2 text-3xl font-bold text-sky-700"
+        >
+          {{ totalScans }}
+        </p>
 
-</p>
+      </div>
 
-</div>
 
-<div class="rounded-2xl bg-yellow-50 p-5 text-center">
+      <!-- DOUBLONS -->
 
-<p class="text-sm text-slate-500">
+      <div
+        class="rounded-2xl bg-yellow-50 p-5 text-center"
+      >
 
-Doublons
+        <p
+          class="text-sm text-slate-500"
+        >
+          Doublons
+        </p>
 
-</p>
+        <p
+          class="mt-2 text-3xl font-bold text-yellow-700"
+        >
+          {{ duplicates }}
+        </p>
 
-<p class="mt-2 text-3xl font-bold text-yellow-700">
+      </div>
 
-{{ duplicates }}
 
-</p>
+      <!-- ERREURS -->
 
-</div>
+      <div
+        class="rounded-2xl bg-red-50 p-5 text-center"
+      >
 
-<div class="rounded-2xl bg-red-50 p-5 text-center">
+        <p
+          class="text-sm text-slate-500"
+        >
+          Erreurs
+        </p>
 
-<p class="text-sm text-slate-500">
+        <p
+          class="mt-2 text-3xl font-bold text-red-700"
+        >
+          {{ errors }}
+        </p>
 
-Erreurs
+      </div>
 
-</p>
 
-<p class="mt-2 text-3xl font-bold text-red-700">
+      <!-- DERNIER DOSSARD -->
 
-{{ errors }}
+      <div
+        class="rounded-2xl bg-green-50 p-5 text-center"
+      >
 
-</p>
+        <p
+          class="text-sm text-slate-500"
+        >
+          Dernier dossard
+        </p>
 
-</div>
+        <p
+          class="mt-2 text-3xl font-bold text-green-700"
+        >
+          {{ lastBib }}
+        </p>
 
-<div class="rounded-2xl bg-green-50 p-5 text-center">
+      </div>
 
-<p class="text-sm text-slate-500">
 
-Temps moyen
+      <!-- DERNIER SCANNER -->
 
-</p>
+      <div
+        class="col-span-2 rounded-2xl bg-slate-50 p-5 text-center lg:col-span-2"
+      >
 
-<p class="mt-2 text-3xl font-bold text-green-700">
+        <p
+          class="text-sm text-slate-500"
+        >
+          Dernier scanner utilisé
+        </p>
 
-{{ averageTime }}
+        <p
+          class="mt-2 truncate text-xl font-bold text-slate-700"
+        >
+          {{ lastScanner }}
+        </p>
 
-</p>
+      </div>
 
-</div>
+    </div>
 
-</div>
-
-</div>
+  </div>
 
 </template>

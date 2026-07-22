@@ -34,6 +34,16 @@ export const useScannerStore = defineStore(
 
 
     // ==================================================
+    // COMPTEURS DU SCANNER
+    // ==================================================
+
+    const duplicateCount =
+  ref(0)
+
+  const errorCount =
+  ref(0)  
+
+    // ==================================================
     // STATISTIQUES
     // ==================================================
 
@@ -144,6 +154,7 @@ export const useScannerStore = defineStore(
         !participant
       ) {
 
+        errorCount.value++
         return {
 
           success: false,
@@ -208,6 +219,8 @@ console.log(
         !race
       ) {
 
+      errorCount.value++  
+
         return {
 
           success: false,
@@ -229,6 +242,7 @@ console.log(
         "running"
       ) {
 
+        errorCount.value++
         return {
 
           success: false,
@@ -355,6 +369,8 @@ console.log(
         error
       ) {
 
+        errorCount.value++
+
         console.error(
           "❌ Erreur Firebase pendant le scan :",
           error
@@ -385,6 +401,7 @@ console.log(
         firebaseResult?.duplicate
       ) {
 
+        duplicateCount.value++
         console.warn(
           "⚠️ Arrivée déjà enregistrée sur Firebase :",
           participant.prenom,
@@ -557,17 +574,21 @@ console.log(
 
     return {
 
-      arrivals,
+  arrivals,
 
-      lastArrival,
+  lastArrival,
 
-      totalScans,
+  totalScans,
 
-      scanParticipant,
+  duplicateCount,
 
-      resetScanner,
+  errorCount,
 
-    }
+  scanParticipant,
+
+  resetScanner,
+
+}
 
   }
 )
