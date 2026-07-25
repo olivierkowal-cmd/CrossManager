@@ -25,6 +25,7 @@ import {
 import ScannerCamera from "../components/scanner/ScannerCamera.vue"
 import LastArrivalCard from "../components/scanner/LastArrivalCard.vue"
 import ScannerStats from "../components/scanner/ScannerStats.vue"
+import LastScansList from "../components/scanner/LastScansList.vue"
 
 
 // ==================================================
@@ -826,11 +827,13 @@ function resetScanner() {
          ACTIVITÉ SCANNER PC
     =================================================== -->
 
-    <div class="desktop-only mt-6">
+  <div class="desktop-only mt-6">
 
-      <ScannerStats />
+  <ScannerStats />
 
-    </div>
+  <LastScansList />
+
+</div>
 
   </div>
 
