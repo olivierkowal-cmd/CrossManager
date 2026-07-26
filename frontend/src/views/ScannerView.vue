@@ -832,7 +832,7 @@ function resetScanner() {
   <ScannerStats />
 
 <LastScansList
-  :arrivals="scannerStore.arrivals"
+  :arrivals="firebaseStore.arrivals"
 />
 
 </div>
