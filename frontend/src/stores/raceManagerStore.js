@@ -1269,18 +1269,43 @@ export const useRaceManagerStore = defineStore(
       // Le passage vers waiting correspond à un vrai RESET.
 
 
-      const staleRunningState =
+    const incomingStartTime =
+  Number(
+    firebaseRace.startTime ?? 0
+  )
 
-        race.status ===
-          "finished" &&
+const localStartTime =
+  Number(
+    race.startTime ?? 0
+  )
 
-        (
-          incomingStatus ===
-            "running" ||
 
-          incomingStatus ===
-            "countdown"
-        )
+// ==================================================
+// DISTINGUER ANCIEN SNAPSHOT ET NOUVEAU DÉPART
+// ==================================================
+//
+// Si une course locale est terminée mais que
+// Firebase annonce "running" :
+//
+// - même ancien startTime -> ancien snapshot -> refusé
+// - nouveau startTime -> nouvelle course -> accepté
+//
+
+const staleRunningState =
+
+  race.status ===
+    "finished" &&
+
+  (
+    incomingStatus ===
+      "running" ||
+
+    incomingStatus ===
+      "countdown"
+  ) &&
+
+  incomingStartTime <=
+    localStartTime
 
 
       if (
