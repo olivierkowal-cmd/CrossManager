@@ -45,6 +45,15 @@ const firebaseStore =
 const raceManager =
   useRaceManagerStore()
 
+// ==================================================
+// COURSE ACTIVE DU MAÎTRE
+// ==================================================
+
+const activeRace = computed(() => {
+  return raceManager.races.find(
+    race => race.status === "running"
+  ) || null
+})
 
 // ==================================================
 // MODE SCANNER
@@ -675,6 +684,20 @@ function resetScanner() {
       <option :value="3">Scanner 3</option>
       <option :value="4">Scanner 4</option>
     </select>
+
+    <div
+  v-if="activeRace"
+  class="mt-2 rounded-xl bg-green-100 px-3 py-2 font-bold text-green-800"
+>
+  🏃 Course en cours : {{ activeRace.categorie }}
+</div>
+
+<div
+  v-else
+  class="mt-2 rounded-xl bg-slate-100 px-3 py-2 text-slate-500"
+>
+  ⏳ Aucune course en cours
+</div>
 
       <h1>
         Scanner QR
