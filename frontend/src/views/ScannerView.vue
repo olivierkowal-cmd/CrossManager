@@ -831,7 +831,9 @@ function resetScanner() {
 
   <ScannerStats />
 
-  <LastScansList />
+<LastScansList
+  :arrivals="scannerStore.arrivals"
+/>
 
 </div>
 
