@@ -82,8 +82,7 @@ function formatElapsed(ms) {
 
         <p class="text-lg font-bold text-sky-700">
 
-          #{{ scan.position }}
-
+        #{{ scan.position || scan.dossard || "--" }} 
         </p>
 
         <p class="text-sm text-slate-500">
