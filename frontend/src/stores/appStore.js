@@ -8,7 +8,9 @@ export const useAppStore = defineStore("app", () => {
   const mode = ref("master")
 
   // Scanner utilisé
-  const scannerId = ref(1)
+  const scannerId = ref(
+  Number(localStorage.getItem("crossmanager-scanner-id")) || 1
+)
 
   // Nom affiché
   const deviceName = computed(() => {
@@ -42,11 +44,16 @@ export const useAppStore = defineStore("app", () => {
 
   function setScanner(id) {
 
-    scannerId.value = id
+  scannerId.value = Number(id)
 
-    mode.value = "scanner"
+  localStorage.setItem(
+    "crossmanager-scanner-id",
+    String(scannerId.value)
+  )
 
-  }
+  mode.value = "scanner"
+
+}
 
   function setMaster() {
 

@@ -53,7 +53,7 @@ const raceManager =
 if (
   app.mode !== "scanner"
 ) {
-  app.setScanner(1)
+  app.setScanner(app.scannerId)
 }
 
 // ==================================================
@@ -664,6 +664,17 @@ function resetScanner() {
       <p class="device-name">
         📱 {{ app.deviceName }}
       </p>
+
+    <select
+      :value="app.scannerId"
+      @change="app.setScanner(Number($event.target.value))"
+      class="scanner-selector"
+    >
+      <option :value="1">Scanner 1</option>
+      <option :value="2">Scanner 2</option>
+      <option :value="3">Scanner 3</option>
+      <option :value="4">Scanner 4</option>
+    </select>
 
       <h1>
         Scanner QR
