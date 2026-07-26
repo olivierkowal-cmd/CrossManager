@@ -26,6 +26,7 @@ import ScannerCamera from "../components/scanner/ScannerCamera.vue"
 import LastArrivalCard from "../components/scanner/LastArrivalCard.vue"
 import ScannerStats from "../components/scanner/ScannerStats.vue"
 import LastScansList from "../components/scanner/LastScansList.vue"
+import CategoryStats from "../components/scanner/CategoryStats.vue"
 
 
 // ==================================================
@@ -832,6 +833,10 @@ function resetScanner() {
   <ScannerStats />
 
 <LastScansList
+  :arrivals="firebaseStore.arrivals"
+/>
+
+<CategoryStats
   :arrivals="firebaseStore.arrivals"
 />
 
