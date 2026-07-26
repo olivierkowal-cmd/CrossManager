@@ -1,15 +1,31 @@
 import { defineStore } from "pinia"
 import { computed } from "vue"
 
-import { useScannerStore } from "./scannerStore"
+import { useFirebaseStore } from "./firebaseStore"
 import { useRaceManagerStore } from "./raceManagerStore"
 
 export const useTvStore = defineStore("tv", () => {
 
-  const scannerStore = useScannerStore()
-  const raceManager = useRaceManagerStore()
+const firebaseStore = useFirebaseStore()
+const raceManager = useRaceManagerStore()
 
-  const lastArrival = computed(() => scannerStore.lastArrival)
+const lastArrival = computed(() => {
+
+  const arrivals =
+    firebaseStore.arrivals ?? []
+
+  if (!arrivals.length) {
+    return null
+  }
+
+  return [...arrivals]
+    .sort(
+      (a, b) =>
+        Number(b.arrivalTime ?? 0) -
+        Number(a.arrivalTime ?? 0)
+    )[0]
+
+})
 
   const runningRaces = computed(() =>
 
