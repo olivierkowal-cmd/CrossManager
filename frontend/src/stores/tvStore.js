@@ -18,12 +18,59 @@ const lastArrival = computed(() => {
     return null
   }
 
-  return [...arrivals]
-    .sort(
-      (a, b) =>
-        Number(b.arrivalTime ?? 0) -
-        Number(a.arrivalTime ?? 0)
-    )[0]
+
+  const arrival =
+    [...arrivals]
+      .sort(
+        (a, b) =>
+          Number(b.arrivalTime ?? 0) -
+          Number(a.arrivalTime ?? 0)
+      )[0]
+
+
+  return {
+
+    id:
+      arrival.id,
+
+    position:
+      arrival.position ?? null,
+
+    participant: {
+
+      id:
+        arrival.participantId,
+
+      dossard:
+        arrival.dossard ?? "",
+
+      prenom:
+        arrival.prenom ?? "",
+
+      nom:
+        arrival.nom ?? "",
+
+      classe:
+        arrival.classe ?? "",
+
+      sexe:
+        arrival.sexe ?? "",
+
+      categorie:
+        arrival.categorie ?? "",
+
+    },
+
+    scanner:
+      arrival.scanner ?? "Scanner",
+
+    arrivalTime:
+      Number(arrival.arrivalTime ?? 0),
+
+    elapsedTime:
+      Number(arrival.elapsedTime ?? 0),
+
+  }
 
 })
 
