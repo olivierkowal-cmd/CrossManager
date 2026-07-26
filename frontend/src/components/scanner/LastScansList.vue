@@ -54,7 +54,7 @@ function formatElapsed(ms) {
 
     <div
       v-for="scan in lastScans"
-      :key="`${scan.participant.id}-${scan.arrivalTime}`"
+      :key="`${scan.participantId}-${scan.arrivalTime}`"
       class="flex items-center justify-between border-b border-slate-100 px-5 py-4 hover:bg-slate-50"
     >
 
@@ -62,15 +62,14 @@ function formatElapsed(ms) {
 
         <p class="font-bold text-slate-900">
 
-          {{ scan.participant.prenom }}
-          {{ scan.participant.nom }}
+        {{ scan.prenom }}
+        {{ scan.nom }}
 
         </p>
 
         <p class="mt-1 text-sm text-slate-500">
 
-          {{ scan.participant.categorie }}
-
+        {{ scan.categorie }}
           •
 
           {{ scan.scanner }}
