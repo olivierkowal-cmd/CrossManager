@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from "vue"
+import { computed, onMounted } from "vue"
 
 import { useTvStore } from "../stores/tvStore"
+import { useFirebaseStore } from "../stores/firebaseStore"
 
 import TvHeader from "../components/tv/TvHeader.vue"
 import TvClock from "../components/tv/TvClock.vue"
@@ -9,6 +10,33 @@ import TvLastArrival from "../components/tv/TvLastArrival.vue"
 import TvRanking from "../components/tv/TvRanking.vue"
 
 const tvStore = useTvStore()
+
+const firebaseStore = useFirebaseStore()
+
+onMounted(async () => {
+
+  console.log(
+    "📺 Écran TV : connexion Firebase..."
+  )
+
+  try {
+
+    await firebaseStore.connect()
+
+    console.log(
+      "📺 Écran TV : Firebase connecté"
+    )
+
+  } catch (error) {
+
+    console.error(
+      "❌ Écran TV : erreur connexion Firebase :",
+      error
+    )
+
+  }
+
+})
 
 const currentRace = computed(() => {
 
