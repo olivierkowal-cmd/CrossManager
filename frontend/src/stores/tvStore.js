@@ -27,6 +27,21 @@ const lastArrival = computed(() => {
           Number(a.arrivalTime ?? 0)
       )[0]
 
+const race =
+  raceManager.getRace(
+    arrival.categorie
+  )
+
+const result =
+  race?.results?.find(
+    item =>
+      String(item.participant?.id) ===
+      String(arrival.participantId)
+  )
+
+const position =
+  result?.position ?? null
+
 
   return {
 
@@ -34,7 +49,7 @@ const lastArrival = computed(() => {
       arrival.id,
 
     position:
-      arrival.position ?? null,
+      position,
 
     participant: {
 
