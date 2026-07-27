@@ -41,24 +41,20 @@ function format(date) {
 <template>
 
 <div
-class="rounded-3xl bg-slate-900 p-8 text-center text-white shadow-lg"
+  class="rounded-3xl bg-slate-900 px-6 py-5 text-center text-white shadow-lg"
 >
 
-<p
-class="uppercase tracking-[0.35em] text-slate-400 text-sm"
->
+  <p
+    class="text-xs uppercase tracking-[0.35em] text-slate-400"
+  >
+    Heure officielle
+  </p>
 
-Heure officielle
-
-</p>
-
-<p
-class="mt-3 font-mono text-6xl font-black"
->
-
-{{ format(now) }}
-
-</p>
+  <p
+    class="mt-2 whitespace-nowrap font-mono text-5xl font-black"
+  >
+    {{ format(now) }}
+  </p>
 
 </div>
 
