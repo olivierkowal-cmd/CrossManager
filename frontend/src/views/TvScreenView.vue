@@ -40,13 +40,38 @@ onMounted(async () => {
 
 const currentRace = computed(() => {
 
-  if (!tvStore.runningRaces.length) {
+  // ==================================================
+  // PRIORITÉ À LA COURSE EN COURS
+  // ==================================================
 
-    return null
+  if (
+    tvStore.runningRaces.length
+  ) {
+
+    return tvStore.runningRaces[0]
 
   }
 
-  return tvStore.runningRaces[0]
+
+  // ==================================================
+  // SINON GARDER LA DERNIÈRE COURSE TERMINÉE
+  // ==================================================
+
+  if (
+    tvStore.finishedRaces.length
+  ) {
+
+    return [...tvStore.finishedRaces]
+      .sort(
+        (a, b) =>
+          Number(b.finishTime ?? 0) -
+          Number(a.finishTime ?? 0)
+      )[0]
+
+  }
+
+
+  return null
 
 })
 
@@ -54,13 +79,48 @@ const ranking = computed(() => {
 
   if (!currentRace.value) {
 
+    console.log(
+      "📺 TV : aucune course sélectionnée"
+    )
+
     return []
 
   }
 
-  return tvStore.getRanking(currentRace.value.categorie)
+
+  const results =
+    tvStore.getRanking(
+      currentRace.value.categorie
+    )
+
+
+  console.log(
+    "📺 TV CLASSEMENT :",
+    {
+      categorie:
+        currentRace.value.categorie,
+
+      status:
+        currentRace.value.status,
+
+      arrivals:
+        currentRace.value.arrivals,
+
+      resultsDansCourse:
+        currentRace.value.results?.length ?? 0,
+
+      ranking:
+        results.length,
+
+      results,
+    }
+  )
+
+
+  return results
 
 })
+
 </script>
 
 <template>
