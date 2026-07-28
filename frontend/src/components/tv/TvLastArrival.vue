@@ -66,7 +66,7 @@ const fullName = computed(() => {
 
 
       <div
-        class="mt-8 grid grid-cols-3 gap-3"
+      class="mt-8 grid grid-cols-[0.85fr_1.3fr_0.85fr] gap-3"
       >
 
         <div
@@ -98,11 +98,11 @@ const fullName = computed(() => {
             Temps
           </p>
 
-          <p
-            class="mt-2 whitespace-nowrap text-3xl font-black text-green-700"
-          >
-            {{ formatElapsed(arrival.elapsedTime) }}
-          </p>
+        <p
+          class="mt-2 whitespace-nowrap text-2xl font-black text-green-700 xl:text-3xl"
+        >
+          {{ formatElapsed(arrival.elapsedTime) }}
+        </p>
 
         </div>
 
