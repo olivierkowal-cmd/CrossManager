@@ -4,25 +4,22 @@ import { computed } from "vue"
 import { useRaceManagerStore } from "../../stores/raceManagerStore"
 import { useRaceStore } from "../../stores/raceStore"
 
+import StatCard from "./StatCard.vue"
+import RunningRaceCard from "./RunningRaceCard.vue"
+
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
 
 const waiting = computed(() =>
-  raceManager.races.filter(
-    race => race.status === "waiting"
-  ).length
+  raceManager.races.filter(r => r.status === "waiting").length
 )
 
 const running = computed(() =>
-  raceManager.races.filter(
-    race => race.status === "running"
-  ).length
+  raceManager.races.filter(r => r.status === "running").length
 )
 
 const finished = computed(() =>
-  raceManager.races.filter(
-    race => race.status === "finished"
-  ).length
+  raceManager.races.filter(r => r.status === "finished").length
 )
 
 const arrivals = computed(() =>
@@ -34,89 +31,85 @@ const arrivals = computed(() =>
 
 const progress = computed(() => {
 
-  const participants =
-    raceStore.participants.length
-
-  if (!participants) {
+  if (!raceStore.participants.length) {
 
     return 0
 
   }
 
   return Math.round(
+
     arrivals.value /
-    participants *
+
+    raceStore.participants.length *
+
     100
+
   )
 
 })
+
+const runningRaces = computed(() =>
+  raceManager.races.filter(
+    race => race.status === "running"
+  )
+)
 </script>
 
 <template>
 
-<div class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
+<div class="space-y-6">
 
-  <p class="text-sky-400 font-bold uppercase tracking-[0.40em]">
-    Tableau de bord
-  </p>
+  <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
 
-  <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+    <p class="text-sky-400 font-bold uppercase tracking-[0.40em]">
+      Tableau de bord
+    </p>
 
-    <div class="rounded-3xl bg-sky-600 p-6">
+    <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
 
-      <p class="text-sm uppercase text-sky-100">
-        Courses
-      </p>
+      <StatCard
+        title="Courses"
+        :value="raceManager.races.length"
+        :subtitle="`⏳ ${waiting} • 🟢 ${running} • ✅ ${finished}`"
+        color="bg-sky-600"
+      />
 
-      <p class="mt-2 text-5xl font-black">
-        {{ raceManager.races.length }}
-      </p>
+      <StatCard
+        title="Participants"
+        :value="raceStore.participants.length"
+        subtitle="Inscrits"
+        color="bg-green-600"
+      />
 
-      <p class="mt-3 text-sky-100">
-        ⏳ {{ waiting }}
-        •
-        🟢 {{ running }}
-        •
-        ✅ {{ finished }}
-      </p>
+      <StatCard
+        title="Arrivées"
+        :value="arrivals"
+        subtitle="Enregistrées"
+        color="bg-violet-600"
+      />
 
-    </div>
-
-    <div class="rounded-3xl bg-green-600 p-6">
-
-      <p class="text-sm uppercase text-green-100">
-        Participants
-      </p>
-
-      <p class="mt-2 text-5xl font-black">
-        {{ raceStore.participants.length }}
-      </p>
-
-    </div>
-
-    <div class="rounded-3xl bg-violet-600 p-6">
-
-      <p class="text-sm uppercase text-violet-100">
-        Arrivées
-      </p>
-
-      <p class="mt-2 text-5xl font-black">
-        {{ arrivals }}
-      </p>
+      <StatCard
+        title="Progression"
+        :value="`${progress}%`"
+        subtitle="Du cross"
+        color="bg-amber-500"
+      />
 
     </div>
 
-    <div class="rounded-3xl bg-amber-500 p-6">
+  </div>
 
-      <p class="text-sm uppercase text-amber-100">
-        Progression
-      </p>
+  <div
+    v-if="runningRaces.length"
+    class="grid gap-6 lg:grid-cols-2"
+  >
 
-      <p class="mt-2 text-5xl font-black">
-        {{ progress }}%
-      </p>
-
-    </div>
+    <RunningRaceCard
+      v-for="race in runningRaces"
+      :key="race.categorie"
+      :race="race"
+    />
 
   </div>
 
