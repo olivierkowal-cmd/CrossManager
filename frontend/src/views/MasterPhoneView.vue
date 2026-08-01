@@ -6,6 +6,7 @@ import { useRaceStore } from "../stores/raceStore"
 
 import RaceCard from "../components/departures/RaceCard.vue"
 import CountdownModal from "../components/departures/CountdownModal.vue"
+import MasterDashboard from "../components/master/MasterDashboard.vue"
 
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
@@ -187,6 +188,8 @@ setTimeout(() => {
 <template>
 
 <section class="space-y-8">
+
+  <MasterDashboard />
 
   <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
 
