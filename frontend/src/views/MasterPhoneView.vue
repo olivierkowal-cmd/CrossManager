@@ -202,6 +202,77 @@ setTimeout(() => {
       Pilotage des départs
     </p>
 
+    <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+
+  <div class="rounded-3xl bg-sky-600 p-6 shadow-lg">
+
+    <p class="text-sm uppercase tracking-wider text-sky-100">
+      Courses
+    </p>
+
+    <p class="mt-2 text-4xl font-black">
+      {{ races.length }}
+    </p>
+
+    <p class="mt-2 text-sky-100">
+      {{ waiting }} attente • {{ running }} en cours • {{ finished }} terminées
+    </p>
+
+  </div>
+
+
+  <div class="rounded-3xl bg-green-600 p-6 shadow-lg">
+
+    <p class="text-sm uppercase tracking-wider text-green-100">
+      Participants
+    </p>
+
+    <p class="mt-2 text-4xl font-black">
+      {{ raceStore.participants.length }}
+    </p>
+
+    <p class="mt-2 text-green-100">
+      inscrits
+    </p>
+
+  </div>
+
+
+  <div class="rounded-3xl bg-violet-600 p-6 shadow-lg">
+
+    <p class="text-sm uppercase tracking-wider text-violet-100">
+      Arrivées
+    </p>
+
+    <p class="mt-2 text-4xl font-black">
+      {{ races.reduce((t, race) => t + race.arrivals, 0) }}
+    </p>
+
+    <p class="mt-2 text-violet-100">
+      enregistrées
+    </p>
+
+  </div>
+
+
+  <div class="rounded-3xl bg-amber-500 p-6 shadow-lg">
+
+    <p class="text-sm uppercase tracking-wider text-amber-100">
+      Progression
+    </p>
+
+    <p class="mt-2 text-4xl font-black">
+      {{ Math.round((races.reduce((t, race) => t + race.arrivals, 0) / Math.max(raceStore.participants.length,1))*100) }}%
+    </p>
+
+    <p class="mt-2 text-amber-100">
+      du cross
+    </p>
+
+  </div>
+
+</div>
+
     <div class="mt-10 grid gap-5 md:grid-cols-3">
 
       <div class="rounded-3xl bg-slate-900 p-6 text-center">
