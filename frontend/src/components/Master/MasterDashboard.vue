@@ -8,46 +8,52 @@ import { useScannerStore } from "../../stores/scannerStore"
 import StatCard from "./StatCard.vue"
 import RunningRaceCard from "./RunningRaceCard.vue"
 import ScannerStatusCard from "./ScannerStatusCard.vue"
+import EventTimeline from "./EventTimeline.vue"
 
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
 const scannerStore = useScannerStore()
 
 const waiting = computed(() =>
-  raceManager.races.filter(r => r.status === "waiting").length
+  raceManager.races.filter(
+    race => race.status === "waiting"
+  ).length
 )
 
 const running = computed(() =>
-  raceManager.races.filter(r => r.status === "running").length
+  raceManager.races.filter(
+    race => race.status === "running"
+  ).length
 )
 
 const finished = computed(() =>
-  raceManager.races.filter(r => r.status === "finished").length
+  raceManager.races.filter(
+    race => race.status === "finished"
+  ).length
 )
 
 const arrivals = computed(() =>
   raceManager.races.reduce(
-    (t, race) => t + race.arrivals,
+    (total, race) => total + race.arrivals,
     0
   )
 )
 
 const progress = computed(() => {
 
-  if (!raceStore.participants.length) {
+  const participants =
+    raceStore.participants.length
+
+  if (!participants) {
 
     return 0
 
   }
 
   return Math.round(
-
     arrivals.value /
-
-    raceStore.participants.length *
-
+    participants *
     100
-
   )
 
 })
@@ -59,10 +65,12 @@ const runningRaces = computed(() =>
 )
 
 const scanners = computed(() =>
-  Object.entries(scannerStore.scannerStatus).map(
-    ([name, data]) => ({
+  Object.entries(
+    scannerStore.scannerStatus
+  ).map(
+    ([name, scanner]) => ({
       name,
-      ...data,
+      ...scanner,
     })
   )
 )
@@ -70,51 +78,96 @@ const scanners = computed(() =>
 
 <template>
 
-<div class="space-y-6">
+<div class="space-y-8">
 
-  <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
+  <!-- ========================= -->
+  <!-- DASHBOARD                 -->
+  <!-- ========================= -->
 
-    <p class="text-sky-400 font-bold uppercase tracking-[0.40em]">
+  <section
+    class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl"
+  >
 
-      Tableau de bord
+    <div class="flex items-center justify-between">
 
-    </p>
+      <div>
 
-    <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <p
+          class="uppercase tracking-[0.35em] text-sky-400 font-bold"
+        >
+          CENTRE DE SUPERVISION
+        </p>
 
-      <StatCard
-        title="Courses"
-        :value="raceManager.races.length"
-        :subtitle="`⏳ ${waiting} • 🟢 ${running} • ✅ ${finished}`"
-        color="bg-sky-600"
-      />
+        <h1
+          class="mt-3 text-5xl font-black"
+        >
+          Téléphone maître
+        </h1>
 
-      <StatCard
-        title="Participants"
-        :value="raceStore.participants.length"
-        subtitle="Inscrits"
-        color="bg-green-600"
-      />
+      </div>
 
-      <StatCard
-        title="Arrivées"
-        :value="arrivals"
-        subtitle="Enregistrées"
-        color="bg-violet-600"
-      />
+      <div
+        class="text-right"
+      >
 
-      <StatCard
-        title="Progression"
-        :value="`${progress}%`"
-        subtitle="Du cross"
-        color="bg-amber-500"
-      />
+        <p class="text-slate-400">
+          Courses
+        </p>
+
+        <p class="text-5xl font-black">
+          {{ raceManager.races.length }}
+        </p>
+
+      </div>
 
     </div>
 
-  </div>
+    <div
+      class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4"
+    >
 
-  <div class="grid gap-6 xl:grid-cols-2">
+      <StatCard
+  icon="🏁"
+  title="Courses"
+  :value="raceManager.races.length"
+  :subtitle="`⏳ ${waiting} • 🟢 ${running} • ✅ ${finished}`"
+  color="bg-sky-600"
+/>
+
+<StatCard
+  icon="👥"
+  title="Participants"
+  :value="raceStore.participants.length"
+  subtitle="Inscrits"
+  color="bg-green-600"
+/>
+
+<StatCard
+  icon="🏆"
+  title="Arrivées"
+  :value="arrivals"
+  subtitle="Enregistrées"
+  color="bg-violet-600"
+/>
+
+<StatCard
+  icon="📈"
+  title="Progression"
+  :value="`${progress}%`"
+  subtitle="Du cross"
+  color="bg-amber-500"
+/>
+    </div>
+
+  </section>
+
+  <!-- ========================= -->
+  <!-- COURSES + SCANNERS        -->
+  <!-- ========================= -->
+
+  <section
+    class="grid gap-6 xl:grid-cols-2"
+  >
 
     <div>
 
@@ -156,7 +209,9 @@ const scanners = computed(() =>
         📱 État des scanners
       </h2>
 
-      <div class="space-y-4">
+      <div
+        class="space-y-4"
+      >
 
         <ScannerStatusCard
           v-for="scanner in scanners"
@@ -168,7 +223,23 @@ const scanners = computed(() =>
 
     </div>
 
-  </div>
+  </section>
+
+    <!-- ========================= -->
+  <!-- TIMELINE                  -->
+  <!-- ========================= -->
+
+  <section>
+
+    <h2
+      class="mb-4 text-3xl font-black"
+    >
+      📜 Journal des événements
+    </h2>
+
+    <EventTimeline />
+
+  </section>
 
 </div>
 

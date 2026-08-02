@@ -33,6 +33,36 @@ export const useScannerStore = defineStore(
       ref(null)
 
 
+      
+    const scannerStatus = ref({
+
+  "Scanner 1": {
+    connected: false,
+    lastScan: null,
+    scans: 0,
+  },
+
+  "Scanner 2": {
+    connected: false,
+    lastScan: null,
+    scans: 0,
+  },
+
+  "Scanner 3": {
+    connected: false,
+    lastScan: null,
+    scans: 0,
+  },
+
+  "Scanner 4": {
+    connected: false,
+    lastScan: null,
+    scans: 0,
+  },
+
+})
+
+
     // ==================================================
     // COMPTEURS DU SCANNER
     // ==================================================
@@ -514,6 +544,16 @@ console.log(
       lastArrival.value =
         result.arrival
 
+      scannerStatus.value[scanner] = {
+
+  connected: true,
+
+  lastScan: Date.now(),
+
+  scans:
+    scannerStatus.value[scanner].scans + 1,
+
+}
 
       // ==================================================
       // 12. LOG

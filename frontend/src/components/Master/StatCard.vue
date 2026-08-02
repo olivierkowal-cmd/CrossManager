@@ -2,13 +2,30 @@
 
 defineProps({
 
-  title: String,
+  title: {
+    type: String,
+    required: true,
+  },
 
-  value: [String, Number],
+  value: {
+    type: [String, Number],
+    required: true,
+  },
 
-  subtitle: String,
+  subtitle: {
+    type: String,
+    default: "",
+  },
 
-  color: String,
+  icon: {
+    type: String,
+    default: "📊",
+  },
+
+  color: {
+    type: String,
+    default: "bg-sky-600",
+  },
 
 })
 
@@ -18,28 +35,40 @@ defineProps({
 
 <div
   :class="[
-    'rounded-3xl p-6 text-white shadow-lg',
+    'relative overflow-hidden rounded-3xl p-6 text-white shadow-lg transition-transform duration-200 hover:scale-[1.02]',
     color,
   ]"
 >
 
+  <div class="absolute right-5 top-4 text-4xl opacity-20">
+
+    {{ icon }}
+
+  </div>
+
   <p
     class="text-sm uppercase tracking-wider opacity-80"
   >
+
     {{ title }}
+
   </p>
 
   <p
-    class="mt-2 text-5xl font-black"
+    class="mt-3 text-5xl font-black leading-none"
   >
+
     {{ value }}
+
   </p>
 
   <p
     v-if="subtitle"
-    class="mt-3 opacity-80"
+    class="mt-4 text-sm opacity-80"
   >
+
     {{ subtitle }}
+
   </p>
 
 </div>
