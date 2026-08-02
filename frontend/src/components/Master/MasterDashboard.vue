@@ -3,12 +3,15 @@ import { computed } from "vue"
 
 import { useRaceManagerStore } from "../../stores/raceManagerStore"
 import { useRaceStore } from "../../stores/raceStore"
+import { useScannerStore } from "../../stores/scannerStore"
 
 import StatCard from "./StatCard.vue"
 import RunningRaceCard from "./RunningRaceCard.vue"
+import ScannerStatusCard from "./ScannerStatusCard.vue"
 
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
+const scannerStore = useScannerStore()
 
 const waiting = computed(() =>
   raceManager.races.filter(r => r.status === "waiting").length
@@ -24,7 +27,7 @@ const finished = computed(() =>
 
 const arrivals = computed(() =>
   raceManager.races.reduce(
-    (total, race) => total + race.arrivals,
+    (t, race) => t + race.arrivals,
     0
   )
 )
@@ -54,6 +57,15 @@ const runningRaces = computed(() =>
     race => race.status === "running"
   )
 )
+
+const scanners = computed(() =>
+  Object.entries(scannerStore.scannerStatus).map(
+    ([name, data]) => ({
+      name,
+      ...data,
+    })
+  )
+)
 </script>
 
 <template>
@@ -63,7 +75,9 @@ const runningRaces = computed(() =>
   <div class="rounded-3xl bg-slate-950 p-8 text-white shadow-2xl">
 
     <p class="text-sky-400 font-bold uppercase tracking-[0.40em]">
+
       Tableau de bord
+
     </p>
 
     <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -100,16 +114,59 @@ const runningRaces = computed(() =>
 
   </div>
 
-  <div
-    v-if="runningRaces.length"
-    class="grid gap-6 lg:grid-cols-2"
-  >
+  <div class="grid gap-6 xl:grid-cols-2">
 
-    <RunningRaceCard
-      v-for="race in runningRaces"
-      :key="race.categorie"
-      :race="race"
-    />
+    <div>
+
+      <h2
+        class="mb-4 text-3xl font-black"
+      >
+        🟢 Courses en cours
+      </h2>
+
+      <div
+        v-if="runningRaces.length"
+        class="space-y-4"
+      >
+
+        <RunningRaceCard
+          v-for="race in runningRaces"
+          :key="race.categorie"
+          :race="race"
+        />
+
+      </div>
+
+      <div
+        v-else
+        class="rounded-3xl bg-slate-900 p-8 text-center text-slate-400"
+      >
+
+        Aucune course en cours
+
+      </div>
+
+    </div>
+
+    <div>
+
+      <h2
+        class="mb-4 text-3xl font-black"
+      >
+        📱 État des scanners
+      </h2>
+
+      <div class="space-y-4">
+
+        <ScannerStatusCard
+          v-for="scanner in scanners"
+          :key="scanner.name"
+          :scanner="scanner"
+        />
+
+      </div>
+
+    </div>
 
   </div>
 
