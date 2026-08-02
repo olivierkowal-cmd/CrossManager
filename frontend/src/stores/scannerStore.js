@@ -54,6 +54,7 @@ export const useScannerStore = defineStore("scanner", () => {
       }
 
     }
+    
 
     const result = raceManager.registerArrival(
       participant,
