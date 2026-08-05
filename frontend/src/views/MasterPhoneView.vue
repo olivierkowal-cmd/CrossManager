@@ -1,31 +1,38 @@
 <script setup>
 import { computed, ref } from "vue"
+
 import { useRaceManagerStore } from "../stores/raceManagerStore"
 import { useRaceStore } from "../stores/raceStore"
+import { useScannerStore } from "../stores/scannerStore"
+import { useEventStore } from "../stores/eventStore"
 
 import RaceCard from "../components/departures/RaceCard.vue"
 import CountdownModal from "../components/departures/CountdownModal.vue"
 
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
+const scannerStore = useScannerStore()
+const eventStore = useEventStore()
 
 const showCountdown = ref(false)
 const countdownValue = ref("")
 const currentRace = ref(null)
 
-const races = computed(() => {
+const races = computed(() =>
 
-  return raceManager.races.map((race) => ({
+  raceManager.races.map(race => ({
 
     ...race,
 
     participants: raceStore.participants.filter(
-      (p) => p.categorie === race.categorie
+
+      p => p.categorie === race.categorie
+
     ).length,
 
   }))
 
-})
+)
 
 const waiting = computed(() =>
   races.value.filter(r => r.status === "waiting").length
@@ -39,9 +46,31 @@ const finished = computed(() =>
   races.value.filter(r => r.status === "finished").length
 )
 
+const scanners = computed(() =>
+
+  Object.entries(scannerStore.scannerStatus).map(
+
+    ([name, scanner]) => ({
+
+      name,
+
+      ...scanner,
+
+    })
+
+  )
+
+)
+
+const events = computed(() =>
+  eventStore.events.slice(0, 10)
+)
+
 async function start(categorie) {
 
-  const race = races.value.find(r => r.categorie === categorie)
+  const race = races.value.find(
+    r => r.categorie === categorie
+  )
 
   if (!race) return
 
@@ -51,21 +80,30 @@ async function start(categorie) {
 
   raceManager.startCountdown(categorie)
 
-  for (const value of [3,2,1]){
+  for (const value of [3, 2, 1]) {
 
     countdownValue.value = value
 
-    await new Promise(resolve=>setTimeout(resolve,1000))
+    await new Promise(resolve =>
+      setTimeout(resolve, 1000)
+    )
 
   }
 
-  countdownValue.value="GO !"
+  countdownValue.value = "GO !"
 
   raceManager.startRace(categorie)
 
-  await new Promise(resolve=>setTimeout(resolve,1000))
+  eventStore.addEvent(
+    "start",
+    `Départ ${race.label}`
+  )
 
-  showCountdown.value=false
+  await new Promise(resolve =>
+    setTimeout(resolve, 1000)
+  )
+
+  showCountdown.value = false
 
 }
 </script>
@@ -74,107 +112,163 @@ async function start(categorie) {
 
 <section class="space-y-8">
 
-<div class="rounded-3xl bg-slate-950 p-8 text-white">
+  <div class="rounded-3xl bg-slate-950 p-8 text-white">
 
-<p class="text-sky-400 uppercase tracking-[0.4em] font-bold">
+    <p class="text-sky-400 uppercase tracking-[0.4em] font-bold">
+      ISM Rèves
+    </p>
 
-ISM Rèves
+    <h1 class="mt-3 text-4xl font-black">
+      Téléphone maître
+    </h1>
 
-</p>
+    <p class="mt-3 text-slate-300">
+      Centre de supervision
+    </p>
 
-<h1 class="mt-3 text-4xl font-black">
+    <div class="mt-8 grid gap-4 md:grid-cols-3">
 
-Téléphone maître
+      <div class="rounded-2xl bg-slate-900 p-5">
+        <p class="text-slate-400">En attente</p>
+        <p class="mt-2 text-5xl font-black text-yellow-400">
+          {{ waiting }}
+        </p>
+      </div>
 
-</h1>
+      <div class="rounded-2xl bg-slate-900 p-5">
+        <p class="text-slate-400">En cours</p>
+        <p class="mt-2 text-5xl font-black text-green-400">
+          {{ running }}
+        </p>
+      </div>
 
-<p class="mt-3 text-slate-300">
+      <div class="rounded-2xl bg-slate-900 p-5">
+        <p class="text-slate-400">Terminées</p>
+        <p class="mt-2 text-5xl font-black text-blue-400">
+          {{ finished }}
+        </p>
+      </div>
 
-Pilotage des départs
+    </div>
 
-</p>
+  </div>
 
-<div class="mt-8 grid gap-4 md:grid-cols-3">
+  <div class="grid gap-6 xl:grid-cols-2">
 
-<div class="rounded-2xl bg-slate-900 p-5">
+    <div>
 
-<p class="text-slate-400">
+      <h2 class="mb-4 text-2xl font-black">
+        🚦 Courses
+      </h2>
 
-En attente
+      <div class="space-y-4">
 
-</p>
+        <RaceCard
+          v-for="race in races"
+          :key="race.id"
+          :race="race"
+          @start="start"
+        />
 
-<p class="mt-2 text-5xl font-black text-yellow-400">
+      </div>
 
-{{ waiting }}
+    </div>
 
-</p>
+    <div class="space-y-6">
 
-</div>
+      <div class="rounded-3xl bg-slate-950 p-6 text-white">
 
-<div class="rounded-2xl bg-slate-900 p-5">
+        <h2 class="text-2xl font-black">
+          📱 État des scanners
+        </h2>
 
-<p class="text-slate-400">
+        <div class="mt-5 space-y-3">
 
-En cours
+          <div
+            v-for="scanner in scanners"
+            :key="scanner.name"
+            class="flex items-center justify-between rounded-2xl bg-slate-900 p-4"
+          >
 
-</p>
+            <div>
 
-<p class="mt-2 text-5xl font-black text-green-400">
+              <p class="font-bold">
+                {{ scanner.name }}
+              </p>
 
-{{ running }}
+              <p class="text-sm text-slate-400">
+                {{ scanner.scans }} scans
+              </p>
 
-</p>
+            </div>
 
-</div>
+            <div class="text-right">
 
-<div class="rounded-2xl bg-slate-900 p-5">
+              <p class="text-xl">
+                {{ scanner.connected ? "🟢" : "🔴" }}
+              </p>
 
-<p class="text-slate-400">
+              <p class="text-xs text-slate-400">
+                {{ scanner.network }}
+              </p>
 
-Terminées
+            </div>
 
-</p>
+          </div>
 
-<p class="mt-2 text-5xl font-black text-blue-400">
+        </div>
 
-{{ finished }}
+      </div>
 
-</p>
+      <div class="rounded-3xl bg-slate-950 p-6 text-white">
 
-</div>
+        <h2 class="text-2xl font-black">
+          📜 Activité
+        </h2>
 
-</div>
+        <div class="mt-5 space-y-2">
 
-</div>
+          <div
+            v-for="event in events"
+            :key="event.id"
+            class="rounded-xl bg-slate-900 p-3"
+          >
 
-<div class="grid gap-6 lg:grid-cols-2">
+            <div class="flex items-center justify-between">
 
-<RaceCard
+              <span class="font-medium">
+                {{ event.message }}
+              </span>
 
-v-for="race in races"
+              <span class="text-xs text-slate-400">
+                {{ new Date(event.timestamp).toLocaleTimeString("fr-BE") }}
+              </span>
 
-:key="race.id"
+            </div>
 
-:race="race"
+          </div>
 
-@start="start"
+          <div
+            v-if="events.length === 0"
+            class="text-slate-400"
+          >
+            Aucun événement.
+          </div>
 
-/>
+        </div>
 
-</div>
+      </div>
 
-<CountdownModal
+    </div>
 
-:visible="showCountdown"
+  </div>
 
-:title="currentRace?.label"
-
-:participants="currentRace?.participants ?? 0"
-
-:value="countdownValue"
-
-/>
+  <CountdownModal
+    :visible="showCountdown"
+    :title="currentRace?.label"
+    :participants="currentRace?.participants ?? 0"
+    :value="countdownValue"
+  />
 
 </section>
 

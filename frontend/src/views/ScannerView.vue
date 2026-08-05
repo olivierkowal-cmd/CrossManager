@@ -1,5 +1,9 @@
 <script setup>
-import { ref } from "vue"
+import { onMounted, onUnmounted, ref } from "vue"
+import {
+  updateScannerStatus,
+  disconnectScanner,
+} from "../services/scannerService"
 
 import { useScannerStore } from "../stores/scannerStore"
 import { useAppStore } from "../stores/appStore"
@@ -18,6 +22,38 @@ if (app.mode !== "scanner") {
 
 const message = ref("")
 const messageColor = ref("")
+
+let heartbeat = null
+
+onMounted(() => {
+
+  updateScannerStatus(app.deviceName)
+
+  heartbeat = setInterval(() => {
+
+    updateScannerStatus(
+
+      app.deviceName,
+
+      {
+
+        scans: scannerStore.arrivals.length,
+
+      }
+
+    )
+
+  }, 5000)
+
+})
+
+onUnmounted(() => {
+
+  clearInterval(heartbeat)
+
+  disconnectScanner(app.deviceName)
+
+})
 
 function beep(duration = 120) {
 
@@ -69,6 +105,20 @@ function onScanned(code) {
     vibrate()
 
     message.value = "✓ Arrivée enregistrée"
+
+    updateScannerStatus(
+
+  app.deviceName,
+
+  {
+
+    scans: scannerStore.arrivals.length,
+
+    lastScan: new Date(),
+
+  }
+
+)
 
     messageColor.value =
       "bg-green-100 text-green-700"
