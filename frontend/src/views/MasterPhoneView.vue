@@ -1,12 +1,10 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from "vue"
 
-import { onMounted, onUnmounted, ref } from "vue"
 import { listenScanners } from "../services/firestoreService"
 
 import { useRaceManagerStore } from "../stores/raceManagerStore"
 import { useRaceStore } from "../stores/raceStore"
-import { useScannerStore } from "../stores/scannerStore"
 import { useEventStore } from "../stores/eventStore"
 
 
@@ -43,7 +41,6 @@ onUnmounted(() => {
 
 })
 
-const scannerStore = useScannerStore()
 const eventStore = useEventStore()
 
 const showCountdown = ref(false)
@@ -76,22 +73,6 @@ const running = computed(() =>
 
 const finished = computed(() =>
   races.value.filter(r => r.status === "finished").length
-)
-
-const scanners = computed(() =>
-
-  Object.entries(scannerStore.scannerStatus).map(
-
-    ([name, scanner]) => ({
-
-      name,
-
-      ...scanner,
-
-    })
-
-  )
-
 )
 
 const events = computed(() =>
@@ -217,7 +198,7 @@ async function start(categorie) {
         <div class="mt-5 space-y-3">
 
           <div
-            v-for="scanner in scanners"
+            v-for="(scanner, name) in scanners"
             :key="scanner.name"
             class="flex items-center justify-between rounded-2xl bg-slate-900 p-4"
           >
@@ -225,7 +206,7 @@ async function start(categorie) {
             <div>
 
               <p class="font-bold">
-                {{ scanner.name }}
+                {{ name }}
               </p>
 
               <p class="text-sm text-slate-400">

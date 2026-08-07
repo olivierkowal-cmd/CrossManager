@@ -166,6 +166,23 @@ export const useRaceStore = defineStore('raceStore', () => {
     }
   }
 
+// ==========================
+// Utilitaires
+// ==========================
+
+function formatTime(milliseconds = 0) {
+
+  const totalSeconds = Math.floor(milliseconds / 1000)
+
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+
+}
+
+
+
   // ==========================
   // Getters
   // ==========================
@@ -210,5 +227,7 @@ export const useRaceStore = defineStore('raceStore', () => {
     participantCount,
     arrivalCount,
     participantsByCategorie,
+
+    formatTime,
   }
 })

@@ -51,6 +51,14 @@ const routes = [
     component: () => import('../views/ResultsView.vue'),
     meta: { title: 'Résultats' },
   },
+
+{
+  path: '/diagnostic',
+  name: 'diagnostic',
+  component: () => import('../views/DiagnosticView.vue'),
+  meta: { title: 'Diagnostic' },
+},
+
   {
     path: '/settings',
     name: 'settings',
