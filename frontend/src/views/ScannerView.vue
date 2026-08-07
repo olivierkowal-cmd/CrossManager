@@ -14,6 +14,10 @@ import LastArrivalCard from "../components/scanner/LastArrivalCard.vue"
 const scannerStore = useScannerStore()
 const app = useAppStore()
 
+console.log("📱 ScannerView chargé", app.deviceName)
+
+console.log("ScannerView chargé")
+
 // Si aucun mode n'est défini,
 // on considère que cette page est un scanner.
 if (app.mode !== "scanner") {
@@ -25,27 +29,48 @@ const messageColor = ref("")
 
 let heartbeat = null
 
-onMounted(() => {
+onMounted(async () => {
 
-  updateScannerStatus(app.deviceName)
+  try {
 
-  heartbeat = setInterval(() => {
+    await updateScannerStatus(app.deviceName)
 
-    updateScannerStatus(
+    console.log("✅ Premier heartbeat envoyé")
 
-      app.deviceName,
+  } catch (e) {
 
-      {
+    console.error("❌ Erreur Firebase :", e)
 
-        scans: scannerStore.arrivals.length,
+  }
 
-      }
+  heartbeat = setInterval(async () => {
 
-    )
+    try {
+
+      await updateScannerStatus(
+
+        app.deviceName,
+
+        {
+
+          scans: scannerStore.arrivals.length,
+
+        }
+
+      )
+
+      console.log("❤️ Heartbeat")
+
+    } catch (e) {
+
+      console.error(e)
+
+    }
 
   }, 5000)
 
 })
+
 
 onUnmounted(() => {
 

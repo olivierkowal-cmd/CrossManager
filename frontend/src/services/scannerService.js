@@ -1,42 +1,51 @@
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "../firebase/config"
 
-export async function updateScannerStatus(
-  device,
-  data = {}
-) {
+export async function updateScannerStatus(device, data = {}) {
 
-  await setDoc(
 
-    doc(db, "scanners", device),
+  console.log("➡️ updateScannerStatus", device)
 
-    {
+  try {
 
-      device,
+    
+    await setDoc(
 
-      connected: true,
+      doc(db, "scanners", device),
 
-      heartbeat: serverTimestamp(),
+      {
 
-      battery: data.battery ?? 100,
+        device,
 
-      network: data.network ?? "wifi",
+        connected: true,
 
-      scans: data.scans ?? 0,
+        heartbeat: serverTimestamp(),
 
-      version: data.version ?? "1.0",
+        battery: data.battery ?? 100,
 
-      lastScan: data.lastScan ?? null,
+        network: data.network ?? "wifi",
 
-    },
+        scans: data.scans ?? 0,
 
-    {
+        version: data.version ?? "1.0",
 
-      merge: true,
+        lastScan: data.lastScan ?? null,
 
-    }
+      },
 
-  )
+      { merge: true }
+
+    )
+
+    console.log("✅ Firestore OK")
+
+  }
+
+  catch (e) {
+
+    console.error("🔥 Firestore ERROR :", e)
+
+  }
 
 }
 

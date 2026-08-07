@@ -1,16 +1,48 @@
 <script setup>
-import { computed, ref } from "vue"
+import { computed, ref, onMounted, onUnmounted } from "vue"
+
+import { onMounted, onUnmounted, ref } from "vue"
+import { listenScanners } from "../services/firestoreService"
 
 import { useRaceManagerStore } from "../stores/raceManagerStore"
 import { useRaceStore } from "../stores/raceStore"
 import { useScannerStore } from "../stores/scannerStore"
 import { useEventStore } from "../stores/eventStore"
 
+
 import RaceCard from "../components/departures/RaceCard.vue"
 import CountdownModal from "../components/departures/CountdownModal.vue"
 
+
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
+
+const scanners = ref({})
+
+let unsubscribe = null
+
+onMounted(() => {
+
+  unsubscribe = listenScanners((data) => {
+
+    scanners.value = data
+
+    console.log("📱 Scanners reçus :", data)
+
+  })
+
+})
+
+onUnmounted(() => {
+
+  if (unsubscribe) {
+
+    unsubscribe()
+
+  }
+
+})
+
 const scannerStore = useScannerStore()
 const eventStore = useEventStore()
 
