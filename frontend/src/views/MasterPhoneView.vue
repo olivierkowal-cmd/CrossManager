@@ -11,8 +11,8 @@ import { useEventStore } from "../stores/eventStore"
 import RaceCard from "../components/departures/RaceCard.vue"
 import CountdownModal from "../components/departures/CountdownModal.vue"
 import ScannerStatusCard from "../components/dashboard/ScannerStatusCard.vue"
-
-
+import StatCard from "../components/dashboard/StatCard.vue"
+import EventTimeline from "../components/dashboard/EventTimeline.vue"
 
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
@@ -143,26 +143,23 @@ async function start(categorie) {
 
     <div class="mt-8 grid gap-4 md:grid-cols-3">
 
-      <div class="rounded-2xl bg-slate-900 p-5">
-        <p class="text-slate-400">En attente</p>
-        <p class="mt-2 text-5xl font-black text-yellow-400">
-          {{ waiting }}
-        </p>
-      </div>
+      <StatCard
+  title="En attente"
+  :value="waiting"
+  color="yellow"
+/>
 
-      <div class="rounded-2xl bg-slate-900 p-5">
-        <p class="text-slate-400">En cours</p>
-        <p class="mt-2 text-5xl font-black text-green-400">
-          {{ running }}
-        </p>
-      </div>
+<StatCard
+  title="En cours"
+  :value="running"
+  color="green"
+/>
 
-      <div class="rounded-2xl bg-slate-900 p-5">
-        <p class="text-slate-400">Terminées</p>
-        <p class="mt-2 text-5xl font-black text-blue-400">
-          {{ finished }}
-        </p>
-      </div>
+<StatCard
+  title="Terminées"
+  :value="finished"
+  color="blue"
+/>
 
     </div>
 
@@ -209,45 +206,7 @@ async function start(categorie) {
 </div>
       </div>
 
-      <div class="rounded-3xl bg-slate-950 p-6 text-white">
-
-        <h2 class="text-2xl font-black">
-          📜 Activité
-        </h2>
-
-        <div class="mt-5 space-y-2">
-
-          <div
-            v-for="event in events"
-            :key="event.id"
-            class="rounded-xl bg-slate-900 p-3"
-          >
-
-            <div class="flex items-center justify-between">
-
-              <span class="font-medium">
-                {{ event.message }}
-              </span>
-
-              <span class="text-xs text-slate-400">
-                {{ new Date(event.timestamp).toLocaleTimeString("fr-BE") }}
-              </span>
-
-            </div>
-
-          </div>
-
-          <div
-            v-if="events.length === 0"
-            class="text-slate-400"
-          >
-            Aucun événement.
-          </div>
-
-        </div>
-
-      </div>
-
+    <EventTimeline :events="events" />
     </div>
 
   </div>
