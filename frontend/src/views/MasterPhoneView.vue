@@ -10,6 +10,8 @@ import { useEventStore } from "../stores/eventStore"
 
 import RaceCard from "../components/departures/RaceCard.vue"
 import CountdownModal from "../components/departures/CountdownModal.vue"
+import ScannerStatusCard from "../components/dashboard/ScannerStatusCard.vue"
+
 
 
 const raceManager = useRaceManagerStore()
@@ -197,40 +199,14 @@ async function start(categorie) {
 
         <div class="mt-5 space-y-3">
 
-          <div
-            v-for="(scanner, name) in scanners"
-            :key="scanner.name"
-            class="flex items-center justify-between rounded-2xl bg-slate-900 p-4"
-          >
+  <ScannerStatusCard
+    v-for="(scanner, name) in scanners"
+    :key="name"
+    :name="name"
+    :scanner="scanner"
+  />
 
-            <div>
-
-              <p class="font-bold">
-                {{ name }}
-              </p>
-
-              <p class="text-sm text-slate-400">
-                {{ scanner.scans }} scans
-              </p>
-
-            </div>
-
-            <div class="text-right">
-
-              <p class="text-xl">
-                {{ scanner.connected ? "🟢" : "🔴" }}
-              </p>
-
-              <p class="text-xs text-slate-400">
-                {{ scanner.network }}
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
+</div>
       </div>
 
       <div class="rounded-3xl bg-slate-950 p-6 text-white">
