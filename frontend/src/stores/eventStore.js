@@ -5,28 +5,29 @@ export const useEventStore = defineStore("events", () => {
 
   const events = ref([])
 
-  function addEvent(type, message) {
+  function addEvent(type, message, level = "info") {
 
-    events.value.unshift({
+  events.value.unshift({
 
-      id: crypto.randomUUID(),
+    id: Date.now() + Math.random(),
 
-      time: new Date(),
+    timestamp: Date.now(),
 
-      type,
+    type,
 
-      message,
+    level,
 
-    })
+    message,
 
-    if (events.value.length > 200) {
+  })
 
-      events.value.pop()
+  if (events.value.length > 200) {
 
-    }
+    events.value.pop()
 
   }
 
+}
   function clearEvents() {
 
     events.value = []

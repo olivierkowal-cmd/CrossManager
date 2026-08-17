@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from "vue"
-
-import { listenScanners } from "../services/firestoreService"
+import { computed, ref, onMounted, onUnmounted, watch } from "vue"
+import {
+  listenScanners,
+} from "../services/firestoreService"
 
 import { useRaceManagerStore } from "../stores/raceManagerStore"
 import { useRaceStore } from "../stores/raceStore"
@@ -14,16 +15,19 @@ import ScannerStatusCard from "../components/dashboard/ScannerStatusCard.vue"
 import StatCard from "../components/dashboard/StatCard.vue"
 import EventTimeline from "../components/dashboard/EventTimeline.vue"
 
+import { startRaceFirestore } from "../services/raceService"
+
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
 
 const scanners = ref({})
+const previousScanners = ref({})
 
-let unsubscribe = null
+let unsubscribeScanners = null
 
 onMounted(() => {
 
-  unsubscribe = listenScanners((data) => {
+  unsubscribeScanners = listenScanners((data) => {
 
     scanners.value = data
 
@@ -35,9 +39,9 @@ onMounted(() => {
 
 onUnmounted(() => {
 
-  if (unsubscribe) {
+  if (unsubscribeScanners) {
 
-    unsubscribe()
+    unsubscribeScanners()
 
   }
 
@@ -107,7 +111,9 @@ async function start(categorie) {
 
   countdownValue.value = "GO !"
 
-  raceManager.startRace(categorie)
+await startRaceFirestore(categorie)
+
+raceManager.startRace(categorie)
 
   eventStore.addEvent(
     "start",

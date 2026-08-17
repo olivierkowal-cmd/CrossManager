@@ -30,3 +30,33 @@ export function listenScanners(callback) {
   )
 
 }
+
+export function listenRaces(callback) {
+
+  return onSnapshot(
+
+    collection(db, "races"),
+
+    (snapshot) => {
+
+      const races = {}
+
+      snapshot.forEach((doc) => {
+
+        races[doc.id] = doc.data()
+
+      })
+
+      callback(races)
+
+    },
+
+    (error) => {
+
+      console.error("Erreur Firestore (races) :", error)
+
+    }
+
+  )
+
+}
