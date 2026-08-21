@@ -15,7 +15,11 @@ import ScannerStatusCard from "../components/dashboard/ScannerStatusCard.vue"
 import StatCard from "../components/dashboard/StatCard.vue"
 import EventTimeline from "../components/dashboard/EventTimeline.vue"
 
-import { startRaceFirestore } from "../services/raceService"
+import {
+  startRaceFirestore,
+  finishRaceFirestore,
+  resetRaceFirestore,
+} from "../services/raceService"
 
 const raceManager = useRaceManagerStore()
 const raceStore = useRaceStore()
@@ -24,6 +28,7 @@ const scanners = ref({})
 const previousScanners = ref({})
 
 let unsubscribeScanners = null
+let unsubscribeRaces = null
 
 onMounted(() => {
 
@@ -35,6 +40,10 @@ onMounted(() => {
 
   })
 
+  unsubscribeRaces = raceManager.startListening()
+
+  console.log("🏁 Écoute Firestore des courses démarrée")
+
 })
 
 onUnmounted(() => {
@@ -42,6 +51,12 @@ onUnmounted(() => {
   if (unsubscribeScanners) {
 
     unsubscribeScanners()
+
+  }
+
+  if (unsubscribeRaces) {
+
+    unsubscribeRaces()
 
   }
 
@@ -127,6 +142,29 @@ raceManager.startRace(categorie)
   showCountdown.value = false
 
 }
+
+async function finish(categorie) {
+
+  console.log("⛔ FINISH CLIQUÉ :", categorie)
+
+  await finishRaceFirestore(categorie)
+
+  console.log("🔥 Firestore finish envoyé")
+
+  raceManager.finishRace(categorie)
+
+  console.log("✅ Course terminée dans le store")
+
+}
+
+async function reset(categorie) {
+
+  await resetRaceFirestore(categorie)
+
+  raceManager.resetRace(categorie)
+
+}
+
 </script>
 
 <template>
@@ -181,12 +219,14 @@ raceManager.startRace(categorie)
 
       <div class="space-y-4">
 
-        <RaceCard
-          v-for="race in races"
-          :key="race.id"
-          :race="race"
-          @start="start"
-        />
+      <RaceCard
+  v-for="race in races"
+  :key="race.id"
+  :race="race"
+  @start="start"
+  @finish="finish"
+  @reset="reset"
+/>
 
       </div>
 

@@ -5,15 +5,32 @@ import { useRaceStore } from "./raceStore"
 import { useRaceManagerStore } from "./raceManagerStore"
 import { useEventStore } from "./eventStore"
 
+import {
+  registerArrivalFirestore,
+  finishRaceFirestore,
+} from "../services/raceService"
+
 export const useScannerStore = defineStore("scanner", () => {
 
   const raceStore = useRaceStore()
   const raceManager = useRaceManagerStore()
   const eventStore = useEventStore()
 
+
+  // =====================================================
+  // HISTORIQUE LOCAL DU SCANNER
+  // =====================================================
+
+  // Cet historique peut rester en mémoire sans empêcher
+  // une nouvelle course.
   const arrivals = ref([])
 
   const lastArrival = ref(null)
+
+
+  // =====================================================
+  // ÉTAT DES SCANNERS
+  // =====================================================
 
   const scannerStatus = ref({
 
@@ -55,18 +72,27 @@ export const useScannerStore = defineStore("scanner", () => {
 
   })
 
+
+  // =====================================================
+  // HEARTBEAT
+  // =====================================================
+
   function heartbeat(scanner) {
 
     if (!scannerStatus.value[scanner]) {
       return
     }
 
-    const status = scannerStatus.value[scanner]
+    const status =
+      scannerStatus.value[scanner]
 
-    const firstConnection = !status.connected
+    const firstConnection =
+      !status.connected
 
     status.connected = true
-    status.heartbeat = Date.now()
+
+    status.heartbeat =
+      Date.now()
 
     if (firstConnection) {
 
@@ -79,6 +105,11 @@ export const useScannerStore = defineStore("scanner", () => {
 
   }
 
+
+  // =====================================================
+  // INFORMATIONS SCANNER
+  // =====================================================
+
   function updateScannerInfo(
     scanner,
     battery,
@@ -89,44 +120,126 @@ export const useScannerStore = defineStore("scanner", () => {
       return
     }
 
-    scannerStatus.value[scanner].battery = battery
-    scannerStatus.value[scanner].network = network
+    scannerStatus.value[scanner].battery =
+      battery
+
+    scannerStatus.value[scanner].network =
+      network
 
   }
 
-  function scanParticipant(
+
+  // =====================================================
+  // SCAN PARTICIPANT
+  // =====================================================
+
+  async function scanParticipant(
     participantId,
     scanner = "Scanner 1"
   ) {
 
-    participantId = Number(participantId)
+    const code =
+      String(participantId).trim()
 
     heartbeat(scanner)
 
-    const participant = raceStore.participants.find(
-      p => Number(p.id) === participantId
-    )
+
+    // ===================================================
+    // RECHERCHE DU PARTICIPANT
+    // ===================================================
+
+    const participant =
+      raceStore.participants.find(
+        p =>
+          String(p.qr).trim() === code ||
+          String(p.dossard).trim() === code ||
+          String(p.id).trim() === code
+      )
+
 
     if (!participant) {
 
       eventStore.addEvent(
         "error",
-        `Participant ${participantId} introuvable`
+        `Participant ${code} introuvable`
       )
 
       return {
 
         success: false,
 
-        message: "Participant introuvable"
+        message:
+          "Participant introuvable",
 
       }
 
     }
 
-    const duplicate = arrivals.value.find(
-      a => a.participant.id === participant.id
-    )
+
+    // ===================================================
+    // RÉCUPÉRATION DE LA COURSE
+    // ===================================================
+
+    const race =
+      raceManager.getRace(
+        participant.categorie
+      )
+
+
+    if (!race) {
+
+      return {
+
+        success: false,
+
+        message:
+          "Course introuvable",
+
+      }
+
+    }
+
+
+    // ===================================================
+    // VÉRIFICATION COURSE EN COURS
+    // ===================================================
+
+    if (
+      race.status !== "running"
+    ) {
+
+      return {
+
+        success: false,
+
+        message:
+          "La course n'est pas démarrée",
+
+      }
+
+    }
+
+
+    // ===================================================
+    // VÉRIFICATION DOUBLON
+    //
+    // IMPORTANT :
+    // On regarde les résultats de CETTE course,
+    // et non arrivals.value qui contient l'historique
+    // du téléphone.
+    // ===================================================
+
+    const duplicate =
+      Array.isArray(race.results)
+        ? race.results.find(
+            arrival =>
+              String(
+                arrival?.participant?.id
+              ) ===
+              String(participant.id)
+          )
+        : null
+
 
     if (duplicate) {
 
@@ -145,16 +258,24 @@ export const useScannerStore = defineStore("scanner", () => {
 
         arrival: duplicate,
 
-        message: "Participant déjà scanné"
+        message:
+          "Participant déjà scanné",
 
       }
 
     }
 
-    const result = raceManager.registerArrival(
-      participant,
-      scanner
-    )
+
+    // ===================================================
+    // CRÉATION DE L'ARRIVÉE
+    // ===================================================
+
+    const result =
+      raceManager.registerArrival(
+        participant,
+        scanner
+      )
+
 
     if (!result.success) {
 
@@ -162,22 +283,174 @@ export const useScannerStore = defineStore("scanner", () => {
 
     }
 
-    arrivals.value.push(result.arrival)
 
-    lastArrival.value = result.arrival
+    // ===================================================
+    // ENREGISTREMENT FIRESTORE
+    // ===================================================
 
-    scannerStatus.value[scanner].scans++
+    try {
 
-    scannerStatus.value[scanner].lastScan = Date.now()
+      await registerArrivalFirestore(
+        participant.categorie,
+        result.arrival
+      )
+
+      console.log(
+        "✅ Arrivée enregistrée dans Firestore :",
+        result.arrival
+      )
+
+    } catch (error) {
+
+      console.error(
+        "❌ Erreur Firestore arrivée :",
+        error
+      )
+
+
+      // -----------------------------------------------
+      // Annulation de la modification locale
+      // -----------------------------------------------
+
+      if (race.arrivals > 0) {
+
+        race.arrivals--
+
+      }
+
+
+      if (
+        race.results.length > 0 &&
+        race.results[
+          race.results.length - 1
+        ] === result.arrival
+      ) {
+
+        race.results.pop()
+
+      }
+
+
+      return {
+
+        success: false,
+
+        message:
+          "Impossible d'enregistrer l'arrivée dans Firestore",
+
+      }
+
+    }
+
+
+    // ===================================================
+    // HISTORIQUE LOCAL DU SCANNER
+    // ===================================================
+
+    arrivals.value.push(
+      result.arrival
+    )
+
+    lastArrival.value =
+      result.arrival
+
+
+    // ===================================================
+    // STATISTIQUES DU SCANNER
+    // ===================================================
+
+    scannerStatus.value[
+      scanner
+    ].scans++
+
+    scannerStatus.value[
+      scanner
+    ].lastScan =
+      Date.now()
+
+
+    // ===================================================
+    // ÉVÉNEMENT D'ARRIVÉE
+    // ===================================================
 
     eventStore.addEvent(
       "arrival",
       `${participant.nom} ${participant.prenom}`
     )
 
+
+    // ===================================================
+    // FIN AUTOMATIQUE DE LA COURSE
+    //
+    // Si tous les participants de cette catégorie
+    // sont arrivés, la course est automatiquement
+    // terminée.
+    // ===================================================
+
+    const totalParticipants =
+      raceStore.participants.filter(
+        p =>
+          p.categorie ===
+          participant.categorie
+      ).length
+
+
+    if (
+      totalParticipants > 0 &&
+      race.arrivals >= totalParticipants &&
+      race.status === "running"
+    ) {
+
+      console.log(
+        "🏁 Tous les participants sont arrivés :",
+        participant.categorie
+      )
+
+
+      try {
+
+        await finishRaceFirestore(
+          participant.categorie
+        )
+
+        raceManager.finishRace(
+          participant.categorie
+        )
+
+        eventStore.addEvent(
+          "finish",
+          `Fin ${race.label} - tous les participants sont arrivés`
+        )
+
+        console.log(
+          "🏁 Course terminée automatiquement :",
+          participant.categorie
+        )
+
+      } catch (error) {
+
+        console.error(
+          "❌ Impossible de terminer automatiquement la course :",
+          error
+        )
+
+      }
+
+    }
+
+
+    // ===================================================
+    // RÉSULTAT
+    // ===================================================
+
     return result
 
   }
+
+
+  // =====================================================
+  // RESET SCANNER
+  // =====================================================
 
   function resetScanner() {
 
@@ -185,31 +458,45 @@ export const useScannerStore = defineStore("scanner", () => {
 
     lastArrival.value = null
 
-    Object.values(scannerStatus.value).forEach(scanner => {
 
-      scanner.connected = false
-      scanner.scans = 0
-      scanner.lastScan = null
-      scanner.heartbeat = null
+    Object.values(
+      scannerStatus.value
+    ).forEach(
+      scanner => {
 
-    })
+        scanner.connected = false
+
+        scanner.scans = 0
+
+        scanner.lastScan = null
+
+        scanner.heartbeat = null
+
+      }
+    )
 
   }
 
+
+  // =====================================================
+  // SURVEILLANCE DES HEARTBEATS
+  // =====================================================
+
   setInterval(() => {
 
-    const now = Date.now()
+    const now =
+      Date.now()
 
-    Object.entries(scannerStatus.value).forEach(
 
+    Object.entries(
+      scannerStatus.value
+    ).forEach(
       ([name, scanner]) => {
 
         if (
-
           scanner.connected &&
           scanner.heartbeat &&
           now - scanner.heartbeat > 10000
-
         ) {
 
           scanner.connected = false
@@ -222,10 +509,14 @@ export const useScannerStore = defineStore("scanner", () => {
         }
 
       }
-
     )
 
   }, 2000)
+
+
+  // =====================================================
+  // API DU STORE
+  // =====================================================
 
   return {
 

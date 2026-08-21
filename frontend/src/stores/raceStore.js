@@ -1,233 +1,764 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+
 import { importExcel } from '../services/excelImport.js'
-import QRCode from 'qrcode'
+
+import {
+  saveParticipants,
+  saveParticipant,
+  deleteParticipantFirestore,
+  listenParticipants,
+} from '../services/participantService.js'
+
 
 export const useRaceStore = defineStore('raceStore', () => {
-  // ==========================
-  // État
-  // ==========================
+
+  // =====================================================
+  // ÉTAT
+  // =====================================================
 
   const participants = ref([])
+
   const arrivals = ref([])
+
   const categories = ref([])
 
+  const searchQuery = ref('')
+
+  const importMessage = ref('')
+
+
   const settings = ref({
-    schoolName: 'École des Ursulines',
+
+    schoolName: 'ISM Rèves',
+
     eventName: 'Cross scolaire 2026',
+
     apiUrl: '',
+
     autoBeep: true,
+
     autoFullscreen: true,
+
   })
+
 
   const timer = ref({
+
     started: false,
+
     paused: false,
+
     officialStartTime: null,
+
     elapsed: 0,
+
   })
 
-  // ==========================
-  // Participants
-  // ==========================
 
-  function setParticipants(newParticipants = []) {
-    participants.value = newParticipants
+  // =====================================================
+  // RECALCUL DES CATÉGORIES
+  // =====================================================
+
+  function updateCategories() {
 
     categories.value = [
+
       ...new Set(
-        newParticipants
-          .map((p) => p.categorie)
-          .filter(Boolean),
+
+        participants.value
+
+          .map(
+            participant =>
+              participant.categorie
+          )
+
+          .filter(Boolean)
+
       ),
+
     ].sort()
+
   }
+
+
+  // =====================================================
+  // PARTICIPANTS
+  // =====================================================
+
+  function setParticipants(
+    newParticipants = []
+  ) {
+
+    participants.value =
+      Array.isArray(newParticipants)
+        ? newParticipants
+        : []
+
+    updateCategories()
+
+  }
+
+
+  // =====================================================
+  // ÉCOUTE FIRESTORE
+  // =====================================================
+
+  function startParticipantsListening() {
+
+    return listenParticipants(
+      (newParticipants) => {
+
+        setParticipants(
+          newParticipants
+        )
+
+        console.log(
+          "👥 Participants reçus depuis Firestore :",
+          newParticipants.length
+        )
+
+      }
+    )
+
+  }
+
+
+  // =====================================================
+  // IMPORT EXCEL
+  // =====================================================
 
   async function importParticipants(file) {
-    const rows = await importExcel(file)
 
-    const importedParticipants = rows.map((row, index) => {
-      const classe = String(row.Classe ?? row.classe ?? '').trim()
+    importMessage.value =
+      "Importation en cours..."
 
-      const sexe = String(row.Sexe ?? row.sexe ?? '')
-        .trim()
-        .toUpperCase()
 
-      const categorie =
-        classe && sexe
-          ? `${classe.charAt(0)}${sexe}`
-          : ''
+    try {
 
-      return {
-        id: index + 1,
+      const rows =
+        await importExcel(file)
 
-        dossard: String(index + 1).padStart(4, '0'),
 
-        nom: String(row.Nom ?? row.nom ?? '').trim(),
+      const importedParticipants =
+        rows.map(
+          (row, index) => {
 
-        prenom: String(
-          row.Prénom ??
-          row.Prenom ??
-          row.prenom ??
-          '',
-        ).trim(),
+            const classe =
+              String(
+                row.Classe ??
+                row.classe ??
+                ''
+              ).trim()
 
-        classe,
 
-        sexe,
+            const sexe =
+              String(
+                row.Sexe ??
+                row.sexe ??
+                ''
+              )
+                .trim()
+                .toUpperCase()
 
-        categorie,
 
-        present: false,
+            const categorie =
+              classe && sexe
+                ? `${classe.charAt(0)}${sexe}`
+                : ''
 
-        arrive: false,
 
-        heureDepart: null,
+            const dossard =
+              String(
+                index + 1
+              ).padStart(
+                4,
+                '0'
+              )
 
-        heureArrivee: null,
 
-        temps: null,
+            return {
 
-        position: null,
+              id: index + 1,
 
-        positionCategorie: null,
+              dossard,
 
-        qr: `CM-${String(index + 1).padStart(4, '0')}`,
-      }
-    })
+              nom:
+                String(
+                  row.Nom ??
+                  row.nom ??
+                  ''
+                ).trim(),
 
-    setParticipants(importedParticipants)
+              prenom:
+                String(
+                  row.Prénom ??
+                  row.Prenom ??
+                  row.prenom ??
+                  ''
+                ).trim(),
 
-    return importedParticipants.length
-  }
+              classe,
 
-  function addParticipant(participant) {
-    participants.value.push(participant)
+              sexe,
 
-    categories.value = [
-      ...new Set(
-        participants.value
-          .map((p) => p.categorie)
-          .filter(Boolean),
-      ),
-    ].sort()
-  }
+              categorie,
 
-  function updateParticipant(updatedParticipant) {
-    const index = participants.value.findIndex(
-      (p) => p.id === updatedParticipant.id,
-    )
+              present: false,
 
-    if (index !== -1) {
-      participants.value[index] = updatedParticipant
+              arrive: false,
+
+              heureDepart: null,
+
+              heureArrivee: null,
+
+              temps: null,
+
+              position: null,
+
+              positionCategorie: null,
+
+              qr:
+                `CM-${dossard}`,
+
+            }
+
+          }
+        )
+
+
+      setParticipants(
+        importedParticipants
+      )
+
+
+      await saveParticipants(
+        importedParticipants
+      )
+
+
+      importMessage.value =
+        `${importedParticipants.length} participant(s) importé(s)`
+
+
+      console.log(
+        "✅ Participants importés :",
+        importedParticipants.length
+      )
+
+
+      return importedParticipants.length
+
+    } catch (error) {
+
+      console.error(
+        "❌ Erreur import participants :",
+        error
+      )
+
+
+      importMessage.value =
+        "Erreur lors de l'importation"
+
+
+      throw error
+
     }
+
   }
 
-  function deleteParticipant(id) {
-    participants.value = participants.value.filter(
-      (p) => p.id !== id,
+
+  // =====================================================
+  // AJOUTER UN PARTICIPANT
+  // =====================================================
+
+  async function addParticipant(
+    participant
+  ) {
+
+    const newParticipant = {
+
+      ...participant,
+
+      id:
+        participant.id ??
+        Date.now(),
+
+      dossard:
+        String(
+          participant.dossard ?? ''
+        ).padStart(
+          4,
+          '0'
+        ),
+
+      qr:
+        participant.qr ||
+        `CM-${String(
+          participant.dossard ?? ''
+        ).padStart(
+          4,
+          '0'
+        )}`,
+
+    }
+
+
+    participants.value.push(
+      newParticipant
     )
+
+
+    updateCategories()
+
+
+    try {
+
+      await saveParticipant(
+        newParticipant
+      )
+
+      console.log(
+        "✅ Participant enregistré :",
+        newParticipant
+      )
+
+    } catch (error) {
+
+      console.error(
+        "❌ Erreur sauvegarde participant :",
+        error
+      )
+
+
+      participants.value =
+        participants.value.filter(
+          p =>
+            p.id !==
+            newParticipant.id
+        )
+
+
+      updateCategories()
+
+      throw error
+
+    }
+
+
+    return newParticipant
+
   }
 
-  // ==========================
-  // Arrivées
-  // ==========================
 
-  function addArrival(participantId, device = 'Scanner') {
+  // =====================================================
+  // MODIFIER UN PARTICIPANT
+  // =====================================================
+
+  async function updateParticipant(
+    updatedParticipant
+  ) {
+
+    const index =
+      participants.value.findIndex(
+        participant =>
+          participant.id ===
+          updatedParticipant.id
+      )
+
+
+    if (index === -1) {
+
+      return
+
+    }
+
+
+    const previousParticipant =
+      participants.value[index]
+
+
+    const participant = {
+
+      ...updatedParticipant,
+
+      dossard:
+        String(
+          updatedParticipant.dossard ?? ''
+        ).padStart(
+          4,
+          '0'
+        ),
+
+    }
+
+
+    participants.value[index] =
+      participant
+
+
+    updateCategories()
+
+
+    try {
+
+      await saveParticipant(
+        participant
+      )
+
+      console.log(
+        "✅ Participant modifié :",
+        participant
+      )
+
+    } catch (error) {
+
+      console.error(
+        "❌ Erreur modification participant :",
+        error
+      )
+
+
+      participants.value[index] =
+        previousParticipant
+
+
+      updateCategories()
+
+      throw error
+
+    }
+
+
+    return participant
+
+  }
+
+
+  // =====================================================
+  // SUPPRIMER UN PARTICIPANT
+  // =====================================================
+
+  async function deleteParticipant(
+    id
+  ) {
+
+    const previousParticipants =
+      [...participants.value]
+
+
+    participants.value =
+      participants.value.filter(
+        participant =>
+          participant.id !== id
+      )
+
+
+    updateCategories()
+
+
+    try {
+
+      await deleteParticipantFirestore(
+        id
+      )
+
+      console.log(
+        "🗑️ Participant supprimé :",
+        id
+      )
+
+    } catch (error) {
+
+      console.error(
+        "❌ Erreur suppression participant :",
+        error
+      )
+
+
+      participants.value =
+        previousParticipants
+
+      updateCategories()
+
+      throw error
+
+    }
+
+  }
+
+
+  // =====================================================
+  // ARRIVÉES
+  // =====================================================
+
+  function addArrival(
+    participantId,
+    device = 'Scanner'
+  ) {
+
     arrivals.value.push({
+
       participantId,
-      scanTime: Date.now(),
+
+      scanTime:
+        Date.now(),
+
       device,
+
     })
+
   }
 
-  // ==========================
-  // Réinitialisation
-  // ==========================
+
+  // =====================================================
+  // RÉINITIALISATION LOCALE
+  //
+  // IMPORTANT :
+  // Les participants sont CONSERVÉS.
+  //
+  // Le reset des courses est géré par
+  // raceManagerStore + Firestore.
+  // =====================================================
 
   function resetRace() {
-    participants.value = []
+
     arrivals.value = []
-    categories.value = []
+
+
+    searchQuery.value = ''
+
+    importMessage.value = ''
+
 
     settings.value = {
-      schoolName: 'École des Ursulines',
+
+      schoolName: 'ISM Rèves',
+
       eventName: 'Cross scolaire 2026',
+
       apiUrl: '',
+
       autoBeep: true,
+
       autoFullscreen: true,
+
     }
+
 
     timer.value = {
+
       started: false,
+
       paused: false,
+
       officialStartTime: null,
+
       elapsed: 0,
+
     }
+
+
+    // Les participants restent présents.
+
+
+    updateCategories()
+
   }
 
-// ==========================
-// Utilitaires
-// ==========================
 
-function formatTime(milliseconds = 0) {
+  // =====================================================
+  // UTILITAIRE
+  // =====================================================
 
-  const totalSeconds = Math.floor(milliseconds / 1000)
+  function formatTime(
+    milliseconds = 0
+  ) {
 
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-
-}
-
+    const totalSeconds =
+      Math.floor(
+        milliseconds / 1000
+      )
 
 
-  // ==========================
-  // Getters
-  // ==========================
+    const minutes =
+      Math.floor(
+        totalSeconds / 60
+      )
 
-  const participantCount = computed(
-    () => participants.value.length,
-  )
 
-  const arrivalCount = computed(
-    () => arrivals.value.length,
-  )
+    const seconds =
+      totalSeconds % 60
 
-  const participantsByCategorie = computed(() => {
-    return participants.value.reduce((acc, participant) => {
-      const categorie = participant.categorie || 'Autre'
 
-      if (!acc[categorie]) {
-        acc[categorie] = []
+    return (
+
+      `${String(
+        minutes
+      ).padStart(2, "0")}:` +
+
+      `${String(
+        seconds
+      ).padStart(2, "0")}`
+
+    )
+
+  }
+
+
+  // =====================================================
+  // RECHERCHE
+  // =====================================================
+
+  const filteredParticipants =
+    computed(() => {
+
+      const query =
+        searchQuery.value
+          .trim()
+          .toLowerCase()
+
+
+      if (!query) {
+
+        return participants.value
+
       }
 
-      acc[categorie].push(participant)
 
-      return acc
-    }, {})
-  })
+      return participants.value.filter(
+        participant => {
+
+          return [
+
+            participant.dossard,
+
+            participant.nom,
+
+            participant.prenom,
+
+            participant.classe,
+
+            participant.sexe,
+
+            participant.categorie,
+
+            participant.qr,
+
+          ]
+            .filter(Boolean)
+            .some(
+              value =>
+                String(value)
+                  .toLowerCase()
+                  .includes(query)
+            )
+
+        }
+      )
+
+    })
+
+
+  // =====================================================
+  // GETTERS
+  // =====================================================
+
+  const participantCount =
+    computed(
+      () =>
+        participants.value.length
+    )
+
+
+  const arrivalCount =
+    computed(
+      () =>
+        arrivals.value.length
+    )
+
+
+  const participantsByCategorie =
+    computed(() => {
+
+      return participants.value.reduce(
+        (acc, participant) => {
+
+          const categorie =
+            participant.categorie ||
+            'Autre'
+
+
+          if (!acc[categorie]) {
+
+            acc[categorie] = []
+
+          }
+
+
+          acc[categorie].push(
+            participant
+          )
+
+
+          return acc
+
+        },
+        {}
+      )
+
+    })
+
+
+  // =====================================================
+  // API DU STORE
+  // =====================================================
 
   return {
+
     participants,
+
     arrivals,
+
     categories,
+
     settings,
+
     timer,
 
+    searchQuery,
+
+    importMessage,
+
+
     setParticipants,
+
     importParticipants,
+
     addParticipant,
+
     updateParticipant,
+
     deleteParticipant,
+
     addArrival,
+
     resetRace,
 
+    startParticipantsListening,
+
+
     participantCount,
+
     arrivalCount,
+
     participantsByCategorie,
 
+    filteredParticipants,
+
+
     formatTime,
+
   }
+
 })

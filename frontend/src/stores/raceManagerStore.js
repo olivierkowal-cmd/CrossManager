@@ -1,195 +1,531 @@
 import { defineStore } from "pinia"
 import { ref } from "vue"
+
 import { RACES } from "../data/races"
 
-export const useRaceManagerStore = defineStore("raceManager", () => {
+import {
+  listenRacesFirestore,
+} from "../services/raceService"
 
-  const races = ref(
-    RACES.map((race) => ({
-      id: race.id,
-      categorie: race.categorie,
-      label: race.label,
 
-      status: "waiting", // waiting | countdown | running | finished
+export const useRaceManagerStore = defineStore(
+  "raceManager",
+  () => {
 
-      startTime: null,
-      finishTime: null,
+    // =====================================================
+    // COURSES
+    // =====================================================
 
-      participants: 0,
-      arrivals: 0,
+    const races = ref(
+      RACES.map((race) => ({
+        id: race.id,
+        categorie: race.categorie,
+        label: race.label,
 
-      results: [],
-    }))
-  )
+        status: "waiting",
 
-  function getRace(categorie) {
-    return races.value.find(r => r.categorie === categorie)
-  }
+        startTime: null,
+        finishTime: null,
 
-  function startCountdown(categorie) {
-    const race = getRace(categorie)
-    if (!race) return
+        participants: 0,
 
-    race.status = "countdown"
-  }
+        arrivals: 0,
 
-  function startRace(categorie) {
-    const race = getRace(categorie)
-    if (!race) return
+        results: [],
+      }))
+    )
 
-    race.status = "running"
-    race.startTime = Date.now()
-  }
 
-  function finishRace(categorie) {
-    const race = getRace(categorie)
-    if (!race) return
+    // =====================================================
+    // RÉCUPÉRER UNE COURSE
+    // =====================================================
 
-    race.status = "finished"
-    race.finishTime = Date.now()
-  }
+    function getRace(categorie) {
 
-  function resetRace(categorie) {
+      return races.value.find(
+        (race) =>
+          race.categorie === categorie
+      )
 
-    const race = getRace(categorie)
+    }
 
-    if (!race) return
 
-    race.status = "waiting"
-    race.startTime = null
-    race.finishTime = null
-    race.arrivals = 0
-    race.results = []
+    // =====================================================
+    // ÉCOUTE FIRESTORE
+    // =====================================================
 
-  }
+    function startListening() {
 
-  function resetAllRaces() {
+      return listenRacesFirestore(
+        (firestoreRaces) => {
 
-    races.value.forEach(race => {
+          races.value.forEach((race) => {
 
-      race.status = "waiting"
-      race.startTime = null
+            const remote =
+              firestoreRaces[
+                race.categorie
+              ]
+
+            if (!remote) {
+              return
+            }
+
+
+            // ---------------------------------------------
+            // ÉTAT
+            // ---------------------------------------------
+
+            race.status =
+              remote.status ?? "waiting"
+
+
+            // ---------------------------------------------
+            // DÉPART
+            // ---------------------------------------------
+
+            race.startTime =
+              remote.startTime?.toMillis
+                ? remote.startTime.toMillis()
+                : null
+
+
+            // ---------------------------------------------
+            // FIN
+            // ---------------------------------------------
+
+            race.finishTime =
+              remote.finishTime?.toMillis
+                ? remote.finishTime.toMillis()
+                : null
+
+
+            // ---------------------------------------------
+            // PARTICIPANTS
+            // ---------------------------------------------
+
+            race.participants =
+              remote.participants ?? 0
+
+
+            // ---------------------------------------------
+            // ARRIVÉES
+            // ---------------------------------------------
+
+            race.arrivals =
+              remote.arrivals ?? 0
+
+
+            // ---------------------------------------------
+            // RÉSULTATS
+            // ---------------------------------------------
+
+            race.results =
+              Array.isArray(remote.results)
+                ? remote.results
+                : []
+
+
+            console.log(
+              "🏁 Course synchronisée :",
+              race.categorie,
+              {
+                status:
+                  race.status,
+
+                participants:
+                  race.participants,
+
+                arrivals:
+                  race.arrivals,
+
+                results:
+                  race.results.length,
+              }
+            )
+
+          })
+
+        }
+      )
+
+    }
+
+
+    // =====================================================
+    // COMPTE À REBOURS
+    // =====================================================
+
+    function startCountdown(categorie) {
+
+      const race =
+        getRace(categorie)
+
+      if (!race) {
+        return
+      }
+
+      race.status = "countdown"
+
+    }
+
+
+    // =====================================================
+    // DÉMARRER UNE NOUVELLE COURSE
+    // =====================================================
+
+    function startRace(categorie) {
+
+      const race =
+        getRace(categorie)
+
+      if (!race) {
+        return
+      }
+
+
+      // ---------------------------------------------
+      // Nouvelle course
+      // ---------------------------------------------
+
+      race.status = "running"
+
+      race.startTime = Date.now()
+
       race.finishTime = null
+
       race.arrivals = 0
+
       race.results = []
 
-    })
 
-  }
+      console.log(
+        "🏃 Nouvelle course démarrée :",
+        categorie
+      )
 
-  function setParticipants(categorie, total) {
+    }
 
-    const race = getRace(categorie)
 
-    if (!race) return
+    // =====================================================
+    // TERMINER UNE COURSE
+    // =====================================================
 
-    race.participants = total
+    function finishRace(categorie) {
 
-  }
+      const race =
+        getRace(categorie)
 
-  function registerArrival(participant, scanner = "Scanner") {
-
-    const race = getRace(participant.categorie)
-
-    if (!race) {
-
-      return {
-        success: false,
-        message: "Course introuvable"
+      if (!race) {
+        return
       }
 
+
+      race.status = "finished"
+
+      race.finishTime = Date.now()
+
+
+      console.log(
+        "🏁 Course terminée :",
+        categorie
+      )
+
     }
 
-    if (race.status !== "running") {
 
-      return {
-        success: false,
-        message: "La course n'est pas démarrée"
+    // =====================================================
+    // RÉINITIALISER UNE COURSE
+    // =====================================================
+
+    function resetRace(categorie) {
+
+      const race =
+        getRace(categorie)
+
+      if (!race) {
+        return
       }
 
+
+      // ---------------------------------------------
+      // IMPORTANT :
+      //
+      // On ne touche PAS aux participants.
+      //
+      // On efface uniquement l'état de la course.
+      // ---------------------------------------------
+
+      race.status = "waiting"
+
+      race.startTime = null
+
+      race.finishTime = null
+
+      race.arrivals = 0
+
+      race.results = []
+
+
+      console.log(
+        "🔄 Course réinitialisée :",
+        categorie
+      )
+
     }
 
-    const arrivalTime = Date.now()
 
-    const elapsedTime = arrivalTime - race.startTime
+    // =====================================================
+    // RÉINITIALISER TOUTES LES COURSES
+    // =====================================================
 
-    race.arrivals++
+    function resetAllRaces() {
 
-    const arrival = {
+      races.value.forEach(
+        (race) => {
 
-      position: race.arrivals,
+          race.status = "waiting"
 
-      participant,
+          race.startTime = null
 
-      scanner,
+          race.finishTime = null
 
-      arrivalTime,
+          race.arrivals = 0
 
-      elapsedTime,
+          race.results = []
+
+        }
+      )
+
+
+      console.log(
+        "🔄 Toutes les courses réinitialisées"
+      )
 
     }
 
-    race.results.push(arrival)
 
-    if (
-      race.participants > 0 &&
-      race.arrivals >= race.participants
+    // =====================================================
+    // PARTICIPANTS
+    // =====================================================
+
+    function setParticipants(
+      categorie,
+      total
     ) {
 
-      finishRace(race.categorie)
+      const race =
+        getRace(categorie)
+
+      if (!race) {
+        return
+      }
+
+      race.participants = total
 
     }
+
+
+    // =====================================================
+    // ENREGISTRER UNE ARRIVÉE
+    // =====================================================
+
+    function registerArrival(
+      participant,
+      scanner = "Scanner"
+    ) {
+
+      const race =
+        getRace(
+          participant.categorie
+        )
+
+
+      if (!race) {
+
+        return {
+          success: false,
+          message:
+            "Course introuvable",
+        }
+
+      }
+
+
+      // ---------------------------------------------
+      // La course doit être en cours
+      // ---------------------------------------------
+
+      if (
+        race.status !== "running"
+      ) {
+
+        return {
+          success: false,
+          message:
+            "La course n'est pas démarrée",
+        }
+
+      }
+
+
+      // ---------------------------------------------
+      // Sécurité supplémentaire :
+      // le participant ne doit pas déjà être
+      // présent dans cette course.
+      // ---------------------------------------------
+
+      const alreadyArrived =
+        Array.isArray(race.results)
+          ? race.results.some(
+              (arrival) =>
+                String(
+                  arrival?.participant?.id
+                ) ===
+                String(
+                  participant.id
+                )
+            )
+          : false
+
+
+      if (alreadyArrived) {
+
+        return {
+          success: false,
+          duplicate: true,
+          participant,
+          message:
+            "Participant déjà scanné",
+        }
+
+      }
+
+
+      // ---------------------------------------------
+      // ARRIVÉE
+      // ---------------------------------------------
+
+      const arrivalTime =
+        Date.now()
+
+
+      const elapsedTime =
+        race.startTime
+          ? arrivalTime -
+            race.startTime
+          : 0
+
+
+      const arrival = {
+
+        position:
+          race.arrivals + 1,
+
+        participant,
+
+        scanner,
+
+        arrivalTime,
+
+        elapsedTime,
+
+      }
+
+
+      // ---------------------------------------------
+      // Mise à jour locale
+      // ---------------------------------------------
+
+      race.arrivals += 1
+
+      race.results.push(
+        arrival
+      )
+
+
+      return {
+
+        success: true,
+
+        arrival,
+
+      }
+
+    }
+
+
+    // =====================================================
+    // TEMPS ÉCOULÉ
+    // =====================================================
+
+    function getElapsedTime(
+      categorie
+    ) {
+
+      const race =
+        getRace(categorie)
+
+
+      if (!race) {
+        return 0
+      }
+
+
+      if (!race.startTime) {
+        return 0
+      }
+
+
+      if (
+        race.status === "finished" &&
+        race.finishTime
+      ) {
+
+        return (
+          race.finishTime -
+          race.startTime
+        )
+
+      }
+
+
+      return (
+        Date.now() -
+        race.startTime
+      )
+
+    }
+
+
+    // =====================================================
+    // API
+    // =====================================================
 
     return {
 
-      success: true,
+      races,
 
-      arrival
+      getRace,
+
+      startListening,
+
+      startCountdown,
+
+      startRace,
+
+      finishRace,
+
+      resetRace,
+
+      resetAllRaces,
+
+      setParticipants,
+
+      registerArrival,
+
+      getElapsedTime,
 
     }
 
   }
-
-  function getElapsedTime(categorie) {
-
-    const race = getRace(categorie)
-
-    if (!race) return 0
-
-    if (!race.startTime) return 0
-
-    if (race.status === "finished") {
-
-      return race.finishTime - race.startTime
-
-    }
-
-    return Date.now() - race.startTime
-
-  }
-
-  return {
-
-    races,
-
-    getRace,
-
-    startCountdown,
-
-    startRace,
-
-    finishRace,
-
-    resetRace,
-
-    resetAllRaces,
-
-    setParticipants,
-
-    registerArrival,
-
-    getElapsedTime,
-
-  }
-
-})
+)
