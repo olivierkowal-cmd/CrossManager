@@ -7,6 +7,7 @@ import {
   saveParticipants,
   saveParticipant,
   deleteParticipantFirestore,
+  deleteAllParticipantsFirestore,
   listenParticipants,
 } from '../services/participantService.js'
 
@@ -75,7 +76,7 @@ export const useRaceStore = defineStore('raceStore', () => {
 
           .filter(Boolean)
 
-      ),
+      )
 
     ].sort()
 
@@ -91,8 +92,11 @@ export const useRaceStore = defineStore('raceStore', () => {
   ) {
 
     participants.value =
+
       Array.isArray(newParticipants)
+
         ? newParticipants
+
         : []
 
     updateCategories()
@@ -107,6 +111,7 @@ export const useRaceStore = defineStore('raceStore', () => {
   function startParticipantsListening() {
 
     return listenParticipants(
+
       (newParticipants) => {
 
         setParticipants(
@@ -114,11 +119,15 @@ export const useRaceStore = defineStore('raceStore', () => {
         )
 
         console.log(
+
           "👥 Participants reçus depuis Firestore :",
+
           newParticipants.length
+
         )
 
       }
+
     )
 
   }
@@ -141,39 +150,62 @@ export const useRaceStore = defineStore('raceStore', () => {
 
 
       const importedParticipants =
+
         rows.map(
+
           (row, index) => {
 
             const classe =
+
               String(
+
                 row.Classe ??
+
                 row.classe ??
+
                 ''
+
               ).trim()
 
 
             const sexe =
+
               String(
+
                 row.Sexe ??
+
                 row.sexe ??
+
                 ''
+
               )
+
                 .trim()
+
                 .toUpperCase()
 
 
             const categorie =
+
               classe && sexe
+
                 ? `${classe.charAt(0)}${sexe}`
+
                 : ''
 
 
             const dossard =
+
               String(
+
                 index + 1
+
               ).padStart(
+
                 4,
+
                 '0'
+
               )
 
 
@@ -184,18 +216,29 @@ export const useRaceStore = defineStore('raceStore', () => {
               dossard,
 
               nom:
+
                 String(
+
                   row.Nom ??
+
                   row.nom ??
+
                   ''
+
                 ).trim(),
 
               prenom:
+
                 String(
+
                   row.Prénom ??
+
                   row.Prenom ??
+
                   row.prenom ??
+
                   ''
+
                 ).trim(),
 
               classe,
@@ -219,11 +262,13 @@ export const useRaceStore = defineStore('raceStore', () => {
               positionCategorie: null,
 
               qr:
+
                 `CM-${dossard}`,
 
             }
 
           }
+
         )
 
 
@@ -238,26 +283,35 @@ export const useRaceStore = defineStore('raceStore', () => {
 
 
       importMessage.value =
+
         `${importedParticipants.length} participant(s) importé(s)`
 
 
       console.log(
+
         "✅ Participants importés :",
+
         importedParticipants.length
+
       )
 
 
       return importedParticipants.length
 
+
     } catch (error) {
 
       console.error(
-        "❌ Erreur import participants :",
+
+        "❌ Erreur import participants:",
+
         error
+
       )
 
 
       importMessage.value =
+
         "Erreur lors de l'importation"
 
 
@@ -281,24 +335,39 @@ export const useRaceStore = defineStore('raceStore', () => {
       ...participant,
 
       id:
+
         participant.id ??
+
         Date.now(),
 
       dossard:
+
         String(
+
           participant.dossard ?? ''
+
         ).padStart(
+
           4,
+
           '0'
+
         ),
 
       qr:
+
         participant.qr ||
+
         `CM-${String(
+
           participant.dossard ?? ''
+
         ).padStart(
+
           4,
+
           '0'
+
         )}`,
 
     }
@@ -318,24 +387,37 @@ export const useRaceStore = defineStore('raceStore', () => {
         newParticipant
       )
 
+
       console.log(
+
         "✅ Participant enregistré :",
+
         newParticipant
+
       )
+
 
     } catch (error) {
 
       console.error(
-        "❌ Erreur sauvegarde participant :",
+
+        "❌ Erreur sauvegarde participant:",
+
         error
+
       )
 
 
       participants.value =
+
         participants.value.filter(
+
           p =>
+
             p.id !==
+
             newParticipant.id
+
         )
 
 
@@ -360,10 +442,15 @@ export const useRaceStore = defineStore('raceStore', () => {
   ) {
 
     const index =
+
       participants.value.findIndex(
+
         participant =>
+
           participant.id ===
+
           updatedParticipant.id
+
       )
 
 
@@ -375,6 +462,7 @@ export const useRaceStore = defineStore('raceStore', () => {
 
 
     const previousParticipant =
+
       participants.value[index]
 
 
@@ -383,11 +471,17 @@ export const useRaceStore = defineStore('raceStore', () => {
       ...updatedParticipant,
 
       dossard:
+
         String(
+
           updatedParticipant.dossard ?? ''
+
         ).padStart(
+
           4,
+
           '0'
+
         ),
 
     }
@@ -406,20 +500,29 @@ export const useRaceStore = defineStore('raceStore', () => {
         participant
       )
 
+
       console.log(
+
         "✅ Participant modifié :",
+
         participant
+
       )
+
 
     } catch (error) {
 
       console.error(
-        "❌ Erreur modification participant :",
+
+        "❌ Erreur modification participant:",
+
         error
+
       )
 
 
       participants.value[index] =
+
         previousParticipant
 
 
@@ -444,13 +547,18 @@ export const useRaceStore = defineStore('raceStore', () => {
   ) {
 
     const previousParticipants =
+
       [...participants.value]
 
 
     participants.value =
+
       participants.value.filter(
+
         participant =>
+
           participant.id !== id
+
       )
 
 
@@ -463,23 +571,106 @@ export const useRaceStore = defineStore('raceStore', () => {
         id
       )
 
+
       console.log(
+
         "🗑️ Participant supprimé :",
+
         id
+
       )
+
 
     } catch (error) {
 
       console.error(
-        "❌ Erreur suppression participant :",
+
+        "❌ Erreur suppression participant:",
+
         error
+
       )
 
 
       participants.value =
+
         previousParticipants
 
+
       updateCategories()
+
+      throw error
+
+    }
+
+  }
+
+
+  // =====================================================
+  // SUPPRIMER TOUS LES PARTICIPANTS
+  // =====================================================
+
+  async function deleteAllParticipants() {
+
+    // ---------------------------------------------------
+    // Sauvegarde en cas d'erreur
+    // ---------------------------------------------------
+
+    const previousParticipants =
+
+      [...participants.value]
+
+
+    // ---------------------------------------------------
+    // Suppression immédiate de l'affichage
+    // ---------------------------------------------------
+
+    participants.value = []
+
+    updateCategories()
+
+
+    try {
+
+      const deletedCount =
+
+        await deleteAllParticipantsFirestore()
+
+
+      console.log(
+
+        "🗑️ Suppression globale terminée :",
+
+        deletedCount
+
+      )
+
+
+      return deletedCount
+
+
+    } catch (error) {
+
+      console.error(
+
+        "❌ Erreur suppression globale des participants:",
+
+        error
+
+      )
+
+
+      // -------------------------------------------------
+      // Restaurer si Firestore échoue
+      // -------------------------------------------------
+
+      participants.value =
+
+        previousParticipants
+
+
+      updateCategories()
+
 
       throw error
 
@@ -493,8 +684,11 @@ export const useRaceStore = defineStore('raceStore', () => {
   // =====================================================
 
   function addArrival(
+
     participantId,
+
     device = 'Scanner'
+
   ) {
 
     arrivals.value.push({
@@ -502,6 +696,7 @@ export const useRaceStore = defineStore('raceStore', () => {
       participantId,
 
       scanTime:
+
         Date.now(),
 
       device,
@@ -524,7 +719,6 @@ export const useRaceStore = defineStore('raceStore', () => {
   function resetRace() {
 
     arrivals.value = []
-
 
     searchQuery.value = ''
 
@@ -561,7 +755,6 @@ export const useRaceStore = defineStore('raceStore', () => {
 
     // Les participants restent présents.
 
-
     updateCategories()
 
   }
@@ -576,30 +769,53 @@ export const useRaceStore = defineStore('raceStore', () => {
   ) {
 
     const totalSeconds =
+
       Math.floor(
+
         milliseconds / 1000
+
       )
 
 
     const minutes =
+
       Math.floor(
+
         totalSeconds / 60
+
       )
 
 
     const seconds =
+
       totalSeconds % 60
 
 
     return (
 
       `${String(
+
         minutes
-      ).padStart(2, "0")}:` +
+
+      ).padStart(
+
+        2,
+
+        "0"
+
+      )}:` +
 
       `${String(
+
         seconds
-      ).padStart(2, "0")}`
+
+      ).padStart(
+
+        2,
+
+        "0"
+
+      )}`
 
     )
 
@@ -611,11 +827,15 @@ export const useRaceStore = defineStore('raceStore', () => {
   // =====================================================
 
   const filteredParticipants =
+
     computed(() => {
 
       const query =
+
         searchQuery.value
+
           .trim()
+
           .toLowerCase()
 
 
@@ -627,6 +847,7 @@ export const useRaceStore = defineStore('raceStore', () => {
 
 
       return participants.value.filter(
+
         participant => {
 
           return [
@@ -646,15 +867,23 @@ export const useRaceStore = defineStore('raceStore', () => {
             participant.qr,
 
           ]
+
             .filter(Boolean)
+
             .some(
+
               value =>
+
                 String(value)
+
                   .toLowerCase()
+
                   .includes(query)
+
             )
 
         }
+
       )
 
     })
@@ -665,27 +894,39 @@ export const useRaceStore = defineStore('raceStore', () => {
   // =====================================================
 
   const participantCount =
+
     computed(
+
       () =>
+
         participants.value.length
+
     )
 
 
   const arrivalCount =
+
     computed(
+
       () =>
+
         arrivals.value.length
+
     )
 
 
   const participantsByCategorie =
+
     computed(() => {
 
       return participants.value.reduce(
+
         (acc, participant) => {
 
           const categorie =
+
             participant.categorie ||
+
             'Autre'
 
 
@@ -704,7 +945,9 @@ export const useRaceStore = defineStore('raceStore', () => {
           return acc
 
         },
+
         {}
+
       )
 
     })
@@ -740,6 +983,8 @@ export const useRaceStore = defineStore('raceStore', () => {
     updateParticipant,
 
     deleteParticipant,
+
+    deleteAllParticipants,
 
     addArrival,
 

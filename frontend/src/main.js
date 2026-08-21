@@ -1,24 +1,98 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import router from './router'
-import './style.css'
-import App from './App.vue'
+import { createApp } from "vue"
+import { createPinia } from "pinia"
+
+import router from "./router"
+
+import "./style.css"
+
+import App from "./App.vue"
+
 import { useRaceManagerStore } from "./stores/raceManagerStore"
 import { useRaceStore } from "./stores/raceStore"
 
-// Initialisation de l'application Vue avec Pinia et Vue Router.
-const app = createApp(App)
-const pinia = createPinia()
-
-app.use(pinia)
-app.use(router)
-const raceManager = useRaceManagerStore()
-
-const raceStore = useRaceStore()
-
-raceStore.startParticipantsListening()
+import { authReady } from "./firebase/config"
 
 
-raceManager.startListening()
+// =====================================================
+// INITIALISATION DE L'APPLICATION
+// =====================================================
 
-app.mount('#app')
+async function startApplication() {
+
+  try {
+
+    // ---------------------------------------------------
+    // Attendre l'authentification Firebase
+    // ---------------------------------------------------
+
+    await authReady
+
+    console.log(
+      "🔐 Application authentifiée avec Firebase"
+    )
+
+
+    // ---------------------------------------------------
+    // Vue
+    // ---------------------------------------------------
+
+    const app = createApp(App)
+
+    const pinia = createPinia()
+
+    app.use(pinia)
+
+    app.use(router)
+
+
+    // ---------------------------------------------------
+    // Stores
+    // ---------------------------------------------------
+
+    const raceManager =
+      useRaceManagerStore()
+
+    const raceStore =
+      useRaceStore()
+
+
+    // ---------------------------------------------------
+    // Écoute des participants
+    // ---------------------------------------------------
+
+    raceStore.startParticipantsListening()
+
+
+    // ---------------------------------------------------
+    // Écoute des courses
+    // ---------------------------------------------------
+
+    raceManager.startListening()
+
+
+    // ---------------------------------------------------
+    // Monter l'application
+    // ---------------------------------------------------
+
+    app.mount("#app")
+
+
+    console.log(
+      "🚀 CrossManager démarré"
+    )
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "🔥 Impossible de démarrer CrossManager :",
+      error
+    )
+
+  }
+
+}
+
+
+startApplication()

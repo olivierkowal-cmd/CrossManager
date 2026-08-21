@@ -3,14 +3,43 @@ import { ref, computed } from "vue"
 
 export const useAppStore = defineStore("app", () => {
 
-  // Mode de l'application
+  // =====================================================
+  // MODE DE L'APPLICATION
   // master | scanner | tv
-  const mode = ref("master")
+  // =====================================================
 
-  // Scanner utilisé
-  const scannerId = ref(1)
+  const savedMode =
+    localStorage.getItem("crossmanager_mode")
 
-  // Nom affiché
+  const mode = ref(
+    savedMode || "master"
+  )
+
+
+  // =====================================================
+  // SCANNER UTILISÉ
+  // =====================================================
+
+  const savedScannerId =
+    Number(
+      localStorage.getItem(
+        "crossmanager_scanner_id"
+      )
+    )
+
+  const scannerId = ref(
+    Number.isInteger(savedScannerId) &&
+    savedScannerId >= 1 &&
+    savedScannerId <= 4
+      ? savedScannerId
+      : 1
+  )
+
+
+  // =====================================================
+  // NOM AFFICHÉ
+  // =====================================================
+
   const deviceName = computed(() => {
 
     switch (mode.value) {
@@ -31,14 +60,33 @@ export const useAppStore = defineStore("app", () => {
 
   })
 
-  // Etat réseau (prévu pour la V3)
+
+  // =====================================================
+  // ÉTAT RÉSEAU
+  // =====================================================
+
   const connected = ref(true)
+
+
+  // =====================================================
+  // CHANGER DE MODE
+  // =====================================================
 
   function setMode(newMode) {
 
     mode.value = newMode
 
+    localStorage.setItem(
+      "crossmanager_mode",
+      newMode
+    )
+
   }
+
+
+  // =====================================================
+  // CHOISIR UN SCANNER
+  // =====================================================
 
   function setScanner(id) {
 
@@ -46,36 +94,62 @@ export const useAppStore = defineStore("app", () => {
 
     mode.value = "scanner"
 
+
+    localStorage.setItem(
+      "crossmanager_scanner_id",
+      String(id)
+    )
+
+    localStorage.setItem(
+      "crossmanager_mode",
+      "scanner"
+    )
+
   }
+
+
+  // =====================================================
+  // MODE MASTER
+  // =====================================================
 
   function setMaster() {
 
     mode.value = "master"
 
+    localStorage.setItem(
+      "crossmanager_mode",
+      "master"
+    )
+
   }
+
+
+  // =====================================================
+  // MODE TV
+  // =====================================================
 
   function setTv() {
 
     mode.value = "tv"
 
+    localStorage.setItem(
+      "crossmanager_mode",
+      "tv"
+    )
+
   }
+
 
   return {
 
     mode,
-
     scannerId,
-
     deviceName,
-
     connected,
 
     setMode,
-
     setScanner,
-
     setMaster,
-
     setTv,
 
   }

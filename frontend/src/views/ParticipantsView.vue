@@ -1,9 +1,20 @@
 <script setup>
 
-import { computed, onMounted, reactive, ref } from 'vue'
+import {
+  computed,
+  onMounted,
+  reactive,
+  ref,
+} from 'vue'
 
 import { useRaceStore } from '../stores/raceStore'
 
+import { CLASSES } from '../data/classes'
+
+
+// =====================================================
+// ÉTAT FICHIER
+// =====================================================
 
 const fileInput = ref(null)
 
@@ -26,6 +37,8 @@ const editingParticipant = ref(null)
 const saving = ref(false)
 
 const deleting = ref(false)
+
+const deletingAll = ref(false)
 
 
 // =====================================================
@@ -54,6 +67,10 @@ const form = reactive({
 
 })
 
+
+// =====================================================
+// FORMULAIRE VIDE
+// =====================================================
 
 function emptyForm() {
 
@@ -192,28 +209,35 @@ async function submitForm() {
 
   saving.value = true
 
-
   try {
 
     const dossard =
+
       String(
         form.dossard ?? ''
       )
         .trim()
-        .padStart(4, '0')
+        .padStart(
+          4,
+          '0'
+        )
 
 
     const classe =
+
       String(
         form.classe ?? ''
       ).trim() ||
+
       `${form.niveau}${form.sexe}`
 
 
     const categorie =
+
       String(
         form.categorie ?? ''
       ).trim() ||
+
       `${form.niveau}${form.sexe}`
 
 
@@ -251,6 +275,7 @@ async function submitForm() {
 
     }
 
+
     // -------------------------------------------------
     // AJOUT
     // -------------------------------------------------
@@ -263,10 +288,6 @@ async function submitForm() {
 
     }
 
-
-    // IMPORTANT :
-    // On ferme le dialogue avant de remettre
-    // saving à false.
 
     closeDialog()
 
@@ -291,7 +312,7 @@ async function submitForm() {
 
 
 // =====================================================
-// SUPPRESSION
+// SUPPRESSION D'UN PARTICIPANT
 // =====================================================
 
 async function removeParticipant(id) {
@@ -304,8 +325,11 @@ async function removeParticipant(id) {
 
 
   const confirmed =
+
     window.confirm(
+
       "Voulez-vous vraiment supprimer ce participant ?"
+
     )
 
 
@@ -317,7 +341,6 @@ async function removeParticipant(id) {
 
 
   deleting.value = true
-
 
   try {
 
@@ -346,6 +369,142 @@ async function removeParticipant(id) {
 
 
 // =====================================================
+// SUPPRESSION DE TOUS LES PARTICIPANTS
+// =====================================================
+
+async function removeAllParticipants() {
+
+  if (deletingAll.value) {
+
+    return
+
+  }
+
+
+  // ---------------------------------------------------
+  // Vérification
+  // ---------------------------------------------------
+
+  const total =
+    raceStore.participantCount
+
+
+  if (total === 0) {
+
+    alert(
+      "Il n'y a aucun participant à supprimer."
+    )
+
+    return
+
+  }
+
+
+  // ---------------------------------------------------
+  // Première confirmation
+  // ---------------------------------------------------
+
+  const confirmed =
+
+    window.confirm(
+
+      `⚠️ ATTENTION\n\n` +
+
+      `Vous allez supprimer définitivement ` +
+
+      `${total} participant(s).\n\n` +
+
+      `Les participants seront supprimés de ` +
+
+      `Firestore.\n\n` +
+
+      `Voulez-vous continuer ?`
+
+    )
+
+
+  if (!confirmed) {
+
+    return
+
+  }
+
+
+  // ---------------------------------------------------
+  // Deuxième confirmation
+  // ---------------------------------------------------
+
+  const confirmedAgain =
+
+    window.confirm(
+
+      "DERNIÈRE CONFIRMATION\n\n" +
+
+      "Cette action est définitive.\n\n" +
+
+      "Supprimer TOUS les participants ?"
+
+    )
+
+
+  if (!confirmedAgain) {
+
+    return
+
+  }
+
+
+  deletingAll.value = true
+
+  try {
+
+    const deletedCount =
+
+      await raceStore.deleteAllParticipants()
+
+
+    console.log(
+
+      "🗑️ Suppression globale terminée :",
+
+      deletedCount
+
+    )
+
+
+    alert(
+
+      `${deletedCount} participant(s) supprimé(s).`
+
+    )
+
+  } catch (error) {
+
+    console.error(
+
+      "❌ Erreur suppression globale :",
+
+      error
+
+    )
+
+
+    alert(
+
+      "Impossible de supprimer tous les participants."
+
+    )
+
+  } finally {
+
+    deletingAll.value = false
+
+  }
+
+}
+
+
+// =====================================================
 // IMPORT EXCEL
 // =====================================================
 
@@ -363,6 +522,7 @@ function importExcel() {
 async function handleExcelSelection(event) {
 
   const [file] =
+
     event.target.files || []
 
 
@@ -382,8 +542,11 @@ async function handleExcelSelection(event) {
   } catch (error) {
 
     console.error(
+
       "❌ Erreur import Excel :",
+
       error
+
     )
 
   } finally {
@@ -400,6 +563,7 @@ async function handleExcelSelection(event) {
 // =====================================================
 
 const summaryCards =
+
   computed(() => [
 
     {
@@ -416,9 +580,13 @@ const summaryCards =
       label: 'Présents',
 
       value:
+
         raceStore.participants.filter(
+
           participant =>
+
             participant.present
+
         ).length,
 
     },
@@ -432,6 +600,7 @@ const summaryCards =
 
 <section class="space-y-6">
 
+
   <!-- =================================================
        EN-TÊTE
   ================================================== -->
@@ -444,30 +613,41 @@ const summaryCards =
       class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
     >
 
+
       <div>
 
         <p
           class="text-sm font-medium uppercase tracking-[0.3em] text-sky-600"
         >
+
           Participants
+
         </p>
 
 
         <h2
           class="mt-2 text-2xl font-semibold text-slate-900"
         >
+
           Gestion des participants
+
         </h2>
 
 
         <p
           class="mt-2 text-sm text-slate-500"
         >
+
           Ajoutez, recherchez et gérez les coureurs de votre événement.
+
         </p>
 
       </div>
 
+
+      <!-- =================================================
+           ACTIONS
+      ================================================== -->
 
       <div class="flex flex-wrap gap-3">
 
@@ -481,18 +661,44 @@ const summaryCards =
 
 
         <button
-          class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
+          class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="deletingAll"
           @click="importExcel"
         >
+
           Importer un fichier Excel
+
+        </button>
+
+
+        <!-- SUPPRIMER TOUS -->
+
+        <button
+          class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="
+            deletingAll ||
+            raceStore.participantCount === 0
+          "
+          @click="removeAllParticipants"
+        >
+
+          {{
+            deletingAll
+              ? 'Suppression...'
+              : '🗑️ Supprimer tous'
+          }}
+
         </button>
 
 
         <button
-          class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white"
+          class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          :disabled="deletingAll"
           @click="openCreateDialog"
         >
+
           Ajouter un participant
+
         </button>
 
       </div>
@@ -514,15 +720,21 @@ const summaryCards =
         class="rounded-2xl border border-slate-200 bg-slate-50 p-4"
       >
 
-        <p class="text-sm text-slate-500">
+        <p
+          class="text-sm text-slate-500"
+        >
+
           {{ card.label }}
+
         </p>
 
 
         <p
           class="mt-2 text-2xl font-semibold text-slate-900"
         >
+
           {{ card.value }}
+
         </p>
 
       </div>
@@ -543,7 +755,9 @@ const summaryCards =
       >
 
         <span class="sr-only">
+
           Rechercher
+
         </span>
 
 
@@ -561,7 +775,9 @@ const summaryCards =
         v-if="raceStore.importMessage"
         class="text-sm font-medium text-sky-700"
       >
+
         {{ raceStore.importMessage }}
+
       </p>
 
     </div>
@@ -585,35 +801,51 @@ const summaryCards =
 
             <tr>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Dossard
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Nom
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Prénom
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Classe
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Sexe
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Catégorie
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Présent
               </th>
 
-              <th class="px-4 py-3 font-semibold text-slate-700">
+              <th
+                class="px-4 py-3 font-semibold text-slate-700"
+              >
                 Actions
               </th>
 
@@ -634,32 +866,44 @@ const summaryCards =
               <td
                 class="px-4 py-3 font-semibold text-slate-700"
               >
+
                 {{ participant.dossard }}
+
               </td>
 
 
               <td class="px-4 py-3">
+
                 {{ participant.nom }}
+
               </td>
 
 
               <td class="px-4 py-3">
+
                 {{ participant.prenom }}
+
               </td>
 
 
               <td class="px-4 py-3">
+
                 {{ participant.classe }}
+
               </td>
 
 
               <td class="px-4 py-3">
+
                 {{ participant.sexe }}
+
               </td>
 
 
               <td class="px-4 py-3">
+
                 {{ participant.categorie }}
+
               </td>
 
 
@@ -673,7 +917,13 @@ const summaryCards =
                   "
                   class="rounded-full px-2.5 py-1 text-xs font-semibold"
                 >
-                  {{ participant.present ? 'Oui' : 'Non' }}
+
+                  {{
+                    participant.present
+                      ? 'Oui'
+                      : 'Non'
+                  }}
+
                 </span>
 
               </td>
@@ -686,19 +936,27 @@ const summaryCards =
                 >
 
                   <button
-                    class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700"
+                    class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 disabled:opacity-50"
+                    :disabled="deletingAll"
                     @click="openEditDialog(participant)"
                   >
+
                     Éditer
+
                   </button>
 
 
                   <button
                     class="rounded-lg bg-rose-100 px-3 py-1.5 text-sm font-medium text-rose-700 disabled:opacity-50"
-                    :disabled="deleting"
+                    :disabled="
+                      deleting ||
+                      deletingAll
+                    "
                     @click="removeParticipant(participant.id)"
                   >
+
                     Supprimer
+
                   </button>
 
                 </div>
@@ -718,7 +976,9 @@ const summaryCards =
                 colspan="8"
                 class="px-4 py-8 text-center text-slate-400"
               >
+
                 Aucun participant trouvé.
+
               </td>
 
             </tr>
@@ -756,15 +1016,24 @@ const summaryCards =
           <p
             class="text-sm font-medium uppercase tracking-[0.3em] text-sky-600"
           >
+
             Participant
+
           </p>
 
 
           <h3
             class="mt-2 text-xl font-semibold text-slate-900"
           >
-            {{ editingParticipant ? 'Modifier' : 'Ajouter' }}
+
+            {{
+              editingParticipant
+                ? 'Modifier'
+                : 'Ajouter'
+            }}
+
             un participant
+
           </h3>
 
         </div>
@@ -775,7 +1044,9 @@ const summaryCards =
           :disabled="saving"
           @click="closeDialog"
         >
+
           Fermer
+
         </button>
 
       </div>
@@ -789,9 +1060,13 @@ const summaryCards =
         class="mt-6 grid gap-4 md:grid-cols-2"
       >
 
-        <label class="text-sm text-slate-700">
+        <label
+          class="text-sm text-slate-700"
+        >
 
-          <span class="mb-2 block font-medium">
+          <span
+            class="mb-2 block font-medium"
+          >
             Dossard
           </span>
 
@@ -804,9 +1079,13 @@ const summaryCards =
         </label>
 
 
-        <label class="text-sm text-slate-700">
+        <label
+          class="text-sm text-slate-700"
+        >
 
-          <span class="mb-2 block font-medium">
+          <span
+            class="mb-2 block font-medium"
+          >
             Nom
           </span>
 
@@ -818,9 +1097,13 @@ const summaryCards =
         </label>
 
 
-        <label class="text-sm text-slate-700">
+        <label
+          class="text-sm text-slate-700"
+        >
 
-          <span class="mb-2 block font-medium">
+          <span
+            class="mb-2 block font-medium"
+          >
             Prénom
           </span>
 
@@ -832,9 +1115,13 @@ const summaryCards =
         </label>
 
 
-        <label class="text-sm text-slate-700">
+        <label
+          class="text-sm text-slate-700"
+        >
 
-          <span class="mb-2 block font-medium">
+          <span
+            class="mb-2 block font-medium"
+          >
             Sexe
           </span>
 
@@ -856,9 +1143,13 @@ const summaryCards =
         </label>
 
 
-        <label class="text-sm text-slate-700">
+        <label
+          class="text-sm text-slate-700"
+        >
 
-          <span class="mb-2 block font-medium">
+          <span
+            class="mb-2 block font-medium"
+          >
             Niveau
           </span>
 
@@ -870,23 +1161,51 @@ const summaryCards =
         </label>
 
 
-        <label class="text-sm text-slate-700">
+        <!-- CLASSE -->
 
-          <span class="mb-2 block font-medium">
+        <label
+          class="text-sm text-slate-700"
+        >
+
+          <span
+            class="mb-2 block font-medium"
+          >
             Classe
           </span>
 
-          <input
+
+          <select
             v-model="form.classe"
-            class="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-          />
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
+          >
+
+            <option value="">
+              Sélectionner une classe
+            </option>
+
+
+            <option
+              v-for="classe in CLASSES"
+              :key="classe"
+              :value="classe"
+            >
+
+              {{ classe }}
+
+            </option>
+
+          </select>
 
         </label>
 
 
-        <label class="text-sm text-slate-700">
+        <label
+          class="text-sm text-slate-700"
+        >
 
-          <span class="mb-2 block font-medium">
+          <span
+            class="mb-2 block font-medium"
+          >
             Catégorie
           </span>
 
@@ -928,7 +1247,9 @@ const summaryCards =
           :disabled="saving"
           @click="closeDialog"
         >
+
           Annuler
+
         </button>
 
 
