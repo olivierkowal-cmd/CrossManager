@@ -1,12 +1,9 @@
 import { defineStore } from "pinia"
 import { ref } from "vue"
-
 import { RACES } from "../data/races"
-
 import {
   listenRacesFirestore,
 } from "../services/raceService"
-
 
 export const useRaceManagerStore = defineStore(
   "raceManager",
@@ -21,16 +18,11 @@ export const useRaceManagerStore = defineStore(
         id: race.id,
         categorie: race.categorie,
         label: race.label,
-
         status: "waiting",
-
         startTime: null,
         finishTime: null,
-
         participants: 0,
-
         arrivals: 0,
-
         results: [],
       }))
     )
@@ -41,12 +33,10 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     function getRace(categorie) {
-
       return races.value.find(
         (race) =>
           race.categorie === categorie
       )
-
     }
 
 
@@ -55,7 +45,6 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     function startListening() {
-
       return listenRacesFirestore(
         (firestoreRaces) => {
 
@@ -142,12 +131,9 @@ export const useRaceManagerStore = defineStore(
                   race.results.length,
               }
             )
-
           })
-
         }
       )
-
     }
 
 
@@ -156,7 +142,6 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     function startCountdown(categorie) {
-
       const race =
         getRace(categorie)
 
@@ -165,7 +150,6 @@ export const useRaceManagerStore = defineStore(
       }
 
       race.status = "countdown"
-
     }
 
 
@@ -174,7 +158,6 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     function startRace(categorie) {
-
       const race =
         getRace(categorie)
 
@@ -188,13 +171,9 @@ export const useRaceManagerStore = defineStore(
       // ---------------------------------------------
 
       race.status = "running"
-
       race.startTime = Date.now()
-
       race.finishTime = null
-
       race.arrivals = 0
-
       race.results = []
 
 
@@ -202,7 +181,6 @@ export const useRaceManagerStore = defineStore(
         "🏃 Nouvelle course démarrée :",
         categorie
       )
-
     }
 
 
@@ -211,7 +189,6 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     function finishRace(categorie) {
-
       const race =
         getRace(categorie)
 
@@ -219,9 +196,7 @@ export const useRaceManagerStore = defineStore(
         return
       }
 
-
       race.status = "finished"
-
       race.finishTime = Date.now()
 
 
@@ -229,7 +204,6 @@ export const useRaceManagerStore = defineStore(
         "🏁 Course terminée :",
         categorie
       )
-
     }
 
 
@@ -238,7 +212,6 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     function resetRace(categorie) {
-
       const race =
         getRace(categorie)
 
@@ -256,13 +229,9 @@ export const useRaceManagerStore = defineStore(
       // ---------------------------------------------
 
       race.status = "waiting"
-
       race.startTime = null
-
       race.finishTime = null
-
       race.arrivals = 0
-
       race.results = []
 
 
@@ -270,7 +239,6 @@ export const useRaceManagerStore = defineStore(
         "🔄 Course réinitialisée :",
         categorie
       )
-
     }
 
 
@@ -284,15 +252,10 @@ export const useRaceManagerStore = defineStore(
         (race) => {
 
           race.status = "waiting"
-
           race.startTime = null
-
           race.finishTime = null
-
           race.arrivals = 0
-
           race.results = []
-
         }
       )
 
@@ -300,7 +263,6 @@ export const useRaceManagerStore = defineStore(
       console.log(
         "🔄 Toutes les courses réinitialisées"
       )
-
     }
 
 
@@ -321,7 +283,6 @@ export const useRaceManagerStore = defineStore(
       }
 
       race.participants = total
-
     }
 
 
@@ -340,39 +301,31 @@ export const useRaceManagerStore = defineStore(
         )
 
 
-      if (!race) {
+      // ---------------------------------------------
+      // Course introuvable
+      // ---------------------------------------------
 
+      if (!race) {
         return {
           success: false,
           message:
             "Course introuvable",
         }
-
       }
 
 
-      // ---------------------------------------------
-      // La course doit être en cours
-      // ---------------------------------------------
-
-      if (
-        race.status !== "running"
-      ) {
-
-        return {
-          success: false,
-          message:
-            "La course n'est pas démarrée",
-        }
-
-      }
-
-
-      // ---------------------------------------------
-      // Sécurité supplémentaire :
-      // le participant ne doit pas déjà être
-      // présent dans cette course.
-      // ---------------------------------------------
+      // =================================================
+      // DOUBLON
+      // =================================================
+      //
+      // IMPORTANT :
+      // On vérifie le doublon AVANT de vérifier
+      // si la course est encore en cours.
+      //
+      // Cela permet d'indiquer correctement
+      // "Participant déjà scanné" même si la course
+      // vient d'être terminée automatiquement.
+      // =================================================
 
       const alreadyArrived =
         Array.isArray(race.results)
@@ -389,7 +342,6 @@ export const useRaceManagerStore = defineStore(
 
 
       if (alreadyArrived) {
-
         return {
           success: false,
           duplicate: true,
@@ -397,13 +349,27 @@ export const useRaceManagerStore = defineStore(
           message:
             "Participant déjà scanné",
         }
-
       }
 
 
-      // ---------------------------------------------
+      // =================================================
+      // COURSE EN COURS
+      // =================================================
+
+      if (
+        race.status !== "running"
+      ) {
+        return {
+          success: false,
+          message:
+            "La course n'est pas démarrée",
+        }
+      }
+
+
+      // =================================================
       // ARRIVÉE
-      // ---------------------------------------------
+      // =================================================
 
       const arrivalTime =
         Date.now()
@@ -417,7 +383,6 @@ export const useRaceManagerStore = defineStore(
 
 
       const arrival = {
-
         position:
           race.arrivals + 1,
 
@@ -428,7 +393,6 @@ export const useRaceManagerStore = defineStore(
         arrivalTime,
 
         elapsedTime,
-
       }
 
 
@@ -444,13 +408,9 @@ export const useRaceManagerStore = defineStore(
 
 
       return {
-
         success: true,
-
         arrival,
-
       }
-
     }
 
 
@@ -480,12 +440,10 @@ export const useRaceManagerStore = defineStore(
         race.status === "finished" &&
         race.finishTime
       ) {
-
         return (
           race.finishTime -
           race.startTime
         )
-
       }
 
 
@@ -493,7 +451,6 @@ export const useRaceManagerStore = defineStore(
         Date.now() -
         race.startTime
       )
-
     }
 
 
@@ -502,30 +459,17 @@ export const useRaceManagerStore = defineStore(
     // =====================================================
 
     return {
-
       races,
-
       getRace,
-
       startListening,
-
       startCountdown,
-
       startRace,
-
       finishRace,
-
       resetRace,
-
       resetAllRaces,
-
       setParticipants,
-
       registerArrival,
-
       getElapsedTime,
-
     }
-
   }
 )
