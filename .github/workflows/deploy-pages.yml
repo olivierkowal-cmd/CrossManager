@@ -34,6 +34,11 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Configurer GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Construire CrossManager
         working-directory: frontend
         run: npm run build
