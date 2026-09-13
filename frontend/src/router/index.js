@@ -1,6 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 // Définition des routes principales de l'application CrossManager.
+
 const routes = [
   {
     path: '/',
@@ -8,24 +9,28 @@ const routes = [
     component: () => import('../views/DashboardView.vue'),
     meta: { title: 'Dashboard' },
   },
+
   {
     path: '/master-phone',
     name: 'master-phone',
     component: () => import('../views/MasterPhoneView.vue'),
     meta: { title: 'Téléphone maître' },
   },
+
   {
     path: '/scanner',
     name: 'scanner',
     component: () => import('../views/ScannerView.vue'),
     meta: { title: 'Scanner' },
   },
+
   {
     path: '/tv-screen',
     name: 'tv-screen',
     component: () => import('../views/TvScreenView.vue'),
     meta: { title: 'Écran TV' },
   },
+
   {
     path: '/participants',
     name: 'participants',
@@ -35,16 +40,18 @@ const routes = [
 
   {
     path: '/dossards',
-   name: 'dossards',
-   component: () => import('../views/DossardsView.vue'),
-   meta: { title: 'Dossards' },
+    name: 'dossards',
+    component: () => import('../views/DossardsView.vue'),
+    meta: { title: 'Dossards' },
   },
+
   {
     path: '/departures',
     name: 'departures',
     component: () => import('../views/DeparturesView.vue'),
     meta: { title: 'Départs' },
   },
+
   {
     path: '/results',
     name: 'results',
@@ -52,12 +59,12 @@ const routes = [
     meta: { title: 'Résultats' },
   },
 
-{
-  path: '/diagnostic',
-  name: 'diagnostic',
-  component: () => import('../views/DiagnosticView.vue'),
-  meta: { title: 'Diagnostic' },
-},
+  {
+    path: '/diagnostic',
+    name: 'diagnostic',
+    component: () => import('../views/DiagnosticView.vue'),
+    meta: { title: 'Diagnostic' },
+  },
 
   {
     path: '/settings',
@@ -68,7 +75,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 })
 
